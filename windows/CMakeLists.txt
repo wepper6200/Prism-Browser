@@ -32,6 +32,12 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+# flutter_inappwebview_windows uses C++/WinRT coroutines via /await and
+# <experimental/coroutine>. MSVC 14.5x (Visual Studio 2026) turned that into
+# hard error STL1011; Microsoft's documented escape hatch until the plugin
+# moves to C++20 <coroutine>. Inherited by plugin subdirectories.
+add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by

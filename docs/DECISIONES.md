@@ -166,6 +166,28 @@ lib/
   - на чистом запуске грузились демо-вкладки; добавлены флаг `demoDataProvider` и пустые состояния.
 - Лист защиты больше не показывает выдуманный «TLS 1.3» и всегда «защищено»: только фактическое состояние HTTPS страницы.
 
+---
+
+## Сборка в CI (GitHub Actions)
+
+- Репозиторий: публичный `wepper6200/Prism-Browser`, как у Aurora-VPN-Client. Для публичных репозиториев минуты Actions бесплатны.
+- `.github/workflows/build.yml` повторяет схему Aurora:
+  - `test` (Ubuntu): `analyze --fatal-infos`, тесты без тегов `golden` и `showcase`;
+  - `android` (Ubuntu): `scripts/build_android.sh` собирает APK по ABI и универсальный. Подпись берётся из секретов `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`; без них используется отладочный ключ;
+  - `windows` (windows-latest): golden-тесты (не блокируют сборку, diff выгружается в артефакт), затем Inno Setup через choco и `scripts/build_windows.ps1 -Installer -FetchWebView2` (portable-zip и установщик);
+  - `release`: черновик релиза по тегу `v*` со всеми артефактами.
+- Установщик `installer/prism_browser.iss`:
+  - ставится на пользователя без UAC (по желанию — для всех);
+  - русский и английский языки;
+  - опционально регистрирует Prism как браузер (`StartMenuInternet` + `Capabilities`/`URLAssociations` для http/https/.html), и его можно выбрать по умолчанию в параметрах Windows;
+  - **WebView2 Runtime:** если его нет (Windows 10 без Edge), тихо ставит официальный Evergreen-загрузчик Microsoft, который CI скачивает при сборке. В Windows 11 Runtime уже есть.
+- Профиль WebView2 (куки, кэш) лежит в `%LOCALAPPDATA%\Prism\Prism Browser\webview2` (`getApplicationCacheDirectory`), а не в Roaming: данные браузера не должны переезжать с перемещаемым профилем. При удалении приложения папка удаляется.
+
+### Release Android: R8
+- Включены `isMinifyEnabled` и `isShrinkResources` (требование ТЗ).
+- **Найдено проверкой release-сборки на эмуляторе:** R8 вырезал Kotlin-методы, которые `shared_preferences_android` и `package:jni` вызывают через JNI по имени. Падал `SharedPreferencesWithCache.create` в `main()`, `runApp` не вызывался, и Android показывал «не отвечает» (ANR). Добавлены правила `android/app/proguard-rules.pro`: пакеты плагинов `sharedpreferences`, `pathprovider`, `jni`, а также `kotlin.**` и `kotlinx.coroutines.**` целиком (около 1,5 МБ; поиск по одному классу шёл по кругу: `CoroutineSingletons`, затем `Result$Failure`). После этого release-сборка запускается, сайт открывается.
+- Вывод: перед выдачей артефактов release-сборку всегда проверять на устройстве, потому что debug R8 не использует.
+
 ### Деградация эффектов (`EffectsPolicy`)
 - Стекло отключается (непрозрачная поверхность той же формы) при: системном высоком контрасте, режиме «Стекло: Выкл.», а в режиме «Авто» также на слабом устройстве или в режиме экономии энергии.
 - Анимации отключаются при: настройке «Уменьшить анимации», системном `disableAnimations` и режиме экономии энергии.
