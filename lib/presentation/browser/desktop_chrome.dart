@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -26,7 +26,8 @@ class DesktopChrome extends ConsumerWidget {
     required this.onPrivacy,
   });
 
-  static const double height = 44 + 56 + 8;
+  /// top pad + tab row + gap + toolbar row + bottom pad.
+  static const double height = 6 + 40 + 6 + 52 + 8;
 
   final PageState page;
   final VoidCallback onOmnibox;
@@ -37,99 +38,132 @@ class DesktopChrome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final tabs = ref.watch(tabsProvider);
+    final actions = ref.read(browserActionsProvider);
+    // Each group of controls is its own island (Glass: floating capsule;
+    // Material: undecorated inside the docked bar).
+    Widget island(Widget child, {EdgeInsets padding = EdgeInsets.zero}) =>
+        PrismSurface(
+          kind: PrismSurfaceKind.island,
+          padding: padding,
+          child: child,
+        );
+
     return PrismSurface(
-      kind: PrismSurfaceKind.bar,
-      borderRadius: BorderRadius.zero,
+      kind: PrismSurfaceKind.chrome,
+      padding: const EdgeInsets.fromLTRB(PrismSpace.sm, 6, PrismSpace.sm, 8),
       child: SizedBox(
-        height: height,
+        height: height - 14,
         child: Column(
           children: [
             SizedBox(
-              height: 44,
+              height: 40,
               child: Row(
                 children: [
-                  const SizedBox(width: PrismSpace.sm),
-                  for (final t in tabs.tabs)
-                    _DesktopTab(
-                      tab: t,
-                      selected: t.id == tabs.activeId,
-                      onTap: () => ref.read(tabsProvider.notifier).select(t.id),
-                      onClose: () =>
-                          ref.read(tabsProvider.notifier).close(t.id),
+                  Flexible(
+                    child: island(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final t in tabs.tabs)
+                              _DesktopTab(
+                                tab: t,
+                                selected: t.id == tabs.activeId,
+                                onTap: () => ref
+                                    .read(tabsProvider.notifier)
+                                    .select(t.id),
+                                onClose: () =>
+                                    ref.read(tabsProvider.notifier).close(t.id),
+                              ),
+                            SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: PrismIconButton(
+                                icon: PrismIcons.add,
+                                tooltip: '${l.actionNewTab} (Ctrl+T)',
+                                onPressed: () =>
+                                    ref.read(tabsProvider.notifier).newTab(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  PrismIconButton(
-                    icon: PrismIcons.add,
-                    tooltip: '${l.actionNewTab} (Ctrl+T)',
-                    onPressed: () => ref.read(tabsProvider.notifier).newTab(),
                   ),
-                  // Draggable caption area in stage 3.
+                  // Draggable caption area (window drag wired with the runner).
                   const Spacer(),
-                  _WindowButton(
-                    icon: PrismIcons.minus,
-                    tooltip: l.windowMinimize,
-                  ),
-                  _WindowButton(
-                    icon: PrismIcons.expand,
-                    tooltip: l.windowMaximize,
-                  ),
-                  _WindowButton(
-                    icon: PrismIcons.close,
-                    tooltip: l.windowClose,
-                    danger: true,
+                  const SizedBox(width: PrismSpace.sm),
+                  island(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _WindowButton(
+                          icon: PrismIcons.minus,
+                          tooltip: l.windowMinimize,
+                        ),
+                        _WindowButton(
+                          icon: PrismIcons.expand,
+                          tooltip: l.windowMaximize,
+                        ),
+                        _WindowButton(
+                          icon: PrismIcons.close,
+                          tooltip: l.windowClose,
+                          danger: true,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                PrismSpace.xs,
-                0,
-                PrismSpace.xs,
-                PrismSpace.sm,
-              ),
-              child: SizedBox(
-                height: 56,
-                child: Row(
-                  children: [
-                    PrismIconButton(
-                      icon: PrismIcons.back,
-                      tooltip: '${l.actionBack} (Alt+←)',
-                      onPressed: page.canGoBack
-                          ? () =>
-                                ref.read(browserActionsProvider).back().ignore()
-                          : null,
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 52,
+              child: Row(
+                children: [
+                  island(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PrismIconButton(
+                          icon: PrismIcons.back,
+                          tooltip: '${l.actionBack} (Alt+←)',
+                          onPressed: page.canGoBack
+                              ? () => actions.back().ignore()
+                              : null,
+                        ),
+                        PrismIconButton(
+                          icon: PrismIcons.forward,
+                          tooltip: '${l.actionForward} (Alt+→)',
+                          onPressed: page.canGoForward
+                              ? () => actions.forward().ignore()
+                              : null,
+                        ),
+                        PrismIconButton(
+                          icon: PrismIcons.reload,
+                          tooltip: '${l.actionReload} (F5)',
+                          onPressed: page.isBlank
+                              ? null
+                              : () => actions.reload().ignore(),
+                        ),
+                        PrismIconButton(
+                          icon: PrismIcons.home,
+                          tooltip: l.actionHome,
+                          onPressed: () {},
+                        ),
+                      ],
                     ),
-                    PrismIconButton(
-                      icon: PrismIcons.forward,
-                      tooltip: '${l.actionForward} (Alt+→)',
-                      onPressed: page.canGoForward
-                          ? () => ref
-                                .read(browserActionsProvider)
-                                .forward()
-                                .ignore()
-                          : null,
-                    ),
-                    PrismIconButton(
-                      icon: PrismIcons.reload,
-                      tooltip: '${l.actionReload} (F5)',
-                      onPressed: page.isBlank
-                          ? null
-                          : () => ref
-                                .read(browserActionsProvider)
-                                .reload()
-                                .ignore(),
-                    ),
-                    PrismIconButton(
-                      icon: PrismIcons.home,
-                      tooltip: l.actionHome,
-                      onPressed: () {},
-                    ),
-                    const SizedBox(width: PrismSpace.xs),
-                    Expanded(
-                      child: Align(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 880),
-                          child: PrismAddressField(
+                  ),
+                  const SizedBox(width: PrismSpace.sm),
+                  Expanded(
+                    child: Align(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 920),
+                        child: island(
+                          padding: const EdgeInsets.all(2),
+                          PrismAddressField(
                             text: UrlResolver.display(page.url, full: true),
                             hint: l.omniboxHint,
                             security: switch (page.security) {
@@ -151,31 +185,39 @@ class DesktopChrome extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: PrismSpace.xs),
-                    PrismIconButton(
-                      icon: PrismIcons.star,
-                      tooltip: '${l.actionBookmark} (Ctrl+D)',
-                      onPressed: () {},
+                  ),
+                  const SizedBox(width: PrismSpace.sm),
+                  island(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PrismIconButton(
+                          icon: PrismIcons.star,
+                          tooltip: '${l.actionBookmark} (Ctrl+D)',
+                          onPressed: () {},
+                        ),
+                        PrismIconButton(
+                          icon: PrismIcons.downloads,
+                          tooltip: '${l.menuDownloads} (Ctrl+J)',
+                          onPressed: () => context.push('/downloads'),
+                        ),
+                        PrismIconButton(
+                          icon: PrismIcons.incognito,
+                          tooltip: l.menuNewIncognito,
+                          onPressed: () => ref
+                              .read(tabsProvider.notifier)
+                              .newTab(incognito: true),
+                        ),
+                        PrismIconButton(
+                          icon: PrismIcons.menu,
+                          tooltip: l.actionMenu,
+                          onPressed: onMenu,
+                        ),
+                      ],
                     ),
-                    PrismIconButton(
-                      icon: PrismIcons.downloads,
-                      tooltip: '${l.menuDownloads} (Ctrl+J)',
-                      onPressed: () => context.push('/downloads'),
-                    ),
-                    PrismIconButton(
-                      icon: PrismIcons.incognito,
-                      tooltip: l.menuNewIncognito,
-                      onPressed: () => ref
-                          .read(tabsProvider.notifier)
-                          .newTab(incognito: true),
-                    ),
-                    PrismIconButton(
-                      icon: PrismIcons.menu,
-                      tooltip: l.actionMenu,
-                      onPressed: onMenu,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -288,12 +330,14 @@ class _WindowButton extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: () {},
+        // Rounded hover so it stays inside the window-controls island.
+        customBorder: const StadiumBorder(),
         hoverColor: danger
             ? const Color(0xFFC42B1C)
             : t.onSurface.withValues(alpha: 0.08),
         child: SizedBox(
-          width: 46,
-          height: 44,
+          width: 44,
+          height: 40,
           child: Icon(icon, size: 16, color: t.onSurface),
         ),
       ),

@@ -1,4 +1,4 @@
-﻿import 'dart:ui' as ui;
+import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
@@ -104,11 +104,21 @@ class GlassMaterial extends StatelessWidget {
       );
     }
 
-    if (shadow) {
+    if (shadow && t.shadowOpacity > 0) {
+      // BlurStyle.outer: the shadow is drawn only outside the shape, so it
+      // lifts the glass without darkening its see-through middle.
       body = DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: borderRadius,
-          boxShadow: t.shadow(elevation: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF000000)
+                  .withValues(alpha: t.shadowOpacity * 0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+              blurStyle: BlurStyle.outer,
+            ),
+          ],
         ),
         child: body,
       );
@@ -207,29 +217,79 @@ class _GlassPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final rrect = radius.toRRect(rect);
+    const white = Color(0xFFFFFFFF);
 
-    canvas.drawRRect(rrect, Paint()..color = tint);
+    // Body: the tint is a touch lighter at the top, like light falling on
+    // a slab of glass.
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..shader = ui.Gradient.linear(rect.topCenter, rect.bottomCenter, [
+          Color.lerp(tint, white.withValues(alpha: tint.a), 0.06)!,
+          tint,
+        ]),
+    );
 
     if (highlight.a > 0) {
       // Specular sheen: strongest at the top edge, gone by ~55% height.
-      final sheen = Paint()
-        ..shader = ui.Gradient.linear(
-          rect.topCenter,
-          Offset(rect.center.dx, rect.top + size.height * 0.55),
-          [highlight, highlight.withValues(alpha: 0)],
-        );
-      canvas.drawRRect(rrect, sheen);
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..shader = ui.Gradient.linear(
+            rect.topCenter,
+            Offset(rect.center.dx, rect.top + size.height * 0.55),
+            [highlight, highlight.withValues(alpha: 0)],
+          ),
+      );
+      // Light bounced back through the glass along the bottom edge.
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..shader = ui.Gradient.linear(
+            rect.bottomCenter,
+            Offset(rect.center.dx, rect.bottom - size.height * 0.35),
+            [
+              highlight.withValues(alpha: highlight.a * 0.45),
+              highlight.withValues(alpha: 0),
+            ],
+          ),
+      );
     }
 
+    // Outer rim: diagonal light, brightest at the top-left.
     final inset = borderWidth / 2;
-    final border = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth
-      ..shader = ui.Gradient.linear(rect.topCenter, rect.bottomCenter, [
-        borderTop,
-        borderBottom,
-      ]);
-    canvas.drawRRect(rrect.deflate(inset), border);
+    canvas.drawRRect(
+      rrect.deflate(inset),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth
+        ..shader = ui.Gradient.linear(
+          rect.topLeft,
+          rect.bottomRight,
+          [borderTop, Color.lerp(borderTop, borderBottom, 0.7)!, borderBottom],
+          const [0, 0.5, 1],
+        ),
+    );
+
+    // Inner rim: a fainter second edge reads as glass thickness.
+    if (highlight.a > 0 && size.shortestSide > 24) {
+      canvas.drawRRect(
+        rrect.deflate(borderWidth + 1.5),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..shader = ui.Gradient.linear(
+            rect.topCenter,
+            rect.bottomCenter,
+            [
+              highlight.withValues(alpha: highlight.a * 0.55),
+              highlight.withValues(alpha: 0),
+              highlight.withValues(alpha: highlight.a * 0.25),
+            ],
+            const [0, 0.45, 1],
+          ),
+      );
+    }
   }
 
   @override

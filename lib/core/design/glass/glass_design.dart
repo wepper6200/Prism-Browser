@@ -1,4 +1,4 @@
-﻿import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/settings/appearance.dart';
 import '../components/prism_address_field.dart';
@@ -34,7 +34,7 @@ class GlassDesign extends PrismDesign {
       surface: dark ? const Color(0xFF161C2E) : const Color(0xFFFFFFFF),
       surfaceRaised: dark ? const Color(0xFF1E2538) : const Color(0xFFF6F7FB),
       onSurface: dark ? const Color(0xFFF4F6FB) : const Color(0xFF0E1322),
-      onSurfaceMuted: dark ? const Color(0xFFA7B0C4) : const Color(0xFF4A5468),
+      onSurfaceMuted: dark ? const Color(0xFFB4BCCE) : const Color(0xFF4A5468),
       outline: dark ? const Color(0x1FFFFFFF) : const Color(0x1A0E1322),
       accent: scheme.primary,
       onAccent: scheme.onPrimary,
@@ -46,18 +46,18 @@ class GlassDesign extends PrismDesign {
       scrim: const Color(0x80000000),
       // Tint opacities chosen so muted text keeps >= 4.5:1 over any backdrop
       // (worst case checked in test/design/contrast_test.dart).
-      glassTint: dark ? const Color(0xA6161C2E) : const Color(0xB3FFFFFF),
-      glassBorderTop: dark ? const Color(0x47FFFFFF) : const Color(0xE6FFFFFF),
+      glassTint: dark ? const Color(0x80161C2E) : const Color(0x8CFFFFFF),
+      glassBorderTop: dark ? const Color(0x66FFFFFF) : const Color(0xFFFFFFFF),
       glassBorderBottom: dark
           ? const Color(0x0FFFFFFF)
           : const Color(0x1A0E1322),
-      glassHighlight: dark ? const Color(0x1FFFFFFF) : const Color(0x80FFFFFF),
+      glassHighlight: dark ? const Color(0x2EFFFFFF) : const Color(0x99FFFFFF),
       radiusSm: 12,
       radiusMd: 18,
       radiusLg: 26,
       radiusXl: 34,
       blurSigma: 22,
-      shadowOpacity: dark ? 0.35 : 0.12,
+      shadowOpacity: dark ? 0.40 : 0.16,
     );
   }
 
@@ -98,10 +98,39 @@ class GlassDesign extends PrismDesign {
         linearTrackColor: Colors.transparent,
         linearMinHeight: 2.5,
       ),
+      // Monochrome in dark glass (clear, never violet), accent in light.
       sliderTheme: SliderThemeData(
-        activeTrackColor: t.accent,
+        activeTrackColor: dark ? const Color(0xE6FFFFFF) : t.accent,
         inactiveTrackColor: t.onSurface.withValues(alpha: 0.16),
         thumbColor: Colors.white,
+        overlayColor: t.onSurface.withValues(alpha: 0.08),
+      ),
+      // Text fields: a recessed glass well with a light rim.
+      inputDecorationTheme: base.inputDecorationTheme.copyWith(
+        fillColor: const Color(0xFF000000)
+            .withValues(alpha: dark ? 0.22 : 0.05),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(t.radiusMd),
+          borderSide: BorderSide(
+            color: dark ? const Color(0x33FFFFFF) : const Color(0xE6FFFFFF),
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(t.radiusMd),
+          borderSide: BorderSide(
+            color: dark ? const Color(0x33FFFFFF) : const Color(0xE6FFFFFF),
+          ),
+        ),
+      ),
+      // Tooltips: small glass plates with a rim.
+      tooltipTheme: base.tooltipTheme.copyWith(
+        textStyle: base.textTheme.bodySmall?.copyWith(color: t.onSurface),
+        decoration: BoxDecoration(
+          color: t.surface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(t.radiusSm),
+          border: Border.all(color: t.glassBorderTop),
+          boxShadow: t.shadow(),
+        ),
       ),
     );
   }
@@ -111,18 +140,25 @@ class GlassDesign extends PrismDesign {
     PrismSurfaceKind.panel => BorderRadius.circular(t.radiusXl),
     PrismSurfaceKind.card => BorderRadius.circular(t.radiusLg),
     PrismSurfaceKind.menu => BorderRadius.circular(t.radiusMd),
+    PrismSurfaceKind.island => BorderRadius.circular(999),
+    PrismSurfaceKind.chrome => BorderRadius.zero,
   };
 
   @override
   Widget buildSurface(BuildContext context, PrismSurface s) {
     final t = PrismTokens.of(context);
+    // Chrome is just the stage: the glass islands float over the content.
+    if (s.kind == PrismSurfaceKind.chrome) {
+      return Padding(padding: s.padding, child: s.child);
+    }
     return GlassMaterial(
       borderRadius: s.borderRadius ?? _radius(t, s.kind),
       // Content cards: no backdrop blur (see GlassMaterial.blur).
       blur: s.kind != PrismSurfaceKind.card,
       padding: s.padding,
       tintBoost: s.kind == PrismSurfaceKind.menu ? 0.15 : 0,
-      shadow: s.kind == PrismSurfaceKind.menu,
+      // Floating glass casts a soft outer shadow; content cards stay flat.
+      shadow: s.kind != PrismSurfaceKind.card,
       borderColor: s.selected ? t.accent : null,
       borderWidth: s.selected ? 2 : 1,
       child: s.child,
@@ -195,31 +231,41 @@ class GlassDesign extends PrismDesign {
         child: InkWell(
           onTap: f.onTap,
           borderRadius: BorderRadius.circular(999),
-          child: Container(
-            // 48dp: minimum touch target (fills the compact bar exactly).
-            height: PrismSpace.touch,
-            margin: const EdgeInsets.symmetric(horizontal: PrismSpace.xs),
-            padding: const EdgeInsets.symmetric(horizontal: PrismSpace.md),
-            decoration: BoxDecoration(
-              color: t.onSurface.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              children: [
-                SecurityIcon(security: f.security, label: f.securityLabel),
-                const SizedBox(width: PrismSpace.sm),
-                Expanded(
-                  child: Text(
-                    empty ? f.hint : f.text,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.bodyLarge?.copyWith(
-                      color: empty ? t.onSurfaceMuted : t.onSurface,
-                    ),
+          // Recessed glass well (like the segmented track): the field reads
+          // as a lens set into the bar, not a flat grey fill.
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: PrismSpace.xs),
+            child: GlassPill(
+              tone: GlassTone.recessed,
+              child: SizedBox(
+                // 48dp: minimum touch target (fills the compact bar).
+                height: PrismSpace.touch,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: PrismSpace.md,
+                  ),
+                  child: Row(
+                    children: [
+                      SecurityIcon(
+                        security: f.security,
+                        label: f.securityLabel,
+                      ),
+                      const SizedBox(width: PrismSpace.sm),
+                      Expanded(
+                        child: Text(
+                          empty ? f.hint : f.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.bodyLarge?.copyWith(
+                            color: empty ? t.onSurfaceMuted : t.onSurface,
+                          ),
+                        ),
+                      ),
+                      if (f.trailing != null) f.trailing!,
+                    ],
                   ),
                 ),
-                if (f.trailing != null) f.trailing!,
-              ],
+              ),
             ),
           ),
         ),

@@ -14,6 +14,15 @@ enum PrismSurfaceKind {
 
   /// Popup menus, tooltips, context menus.
   menu,
+
+  /// A group of related controls inside a toolbar (nav buttons, actions,
+  /// tabs). Glass: its own floating capsule. Material: no decoration (the
+  /// whole bar is one docked surface).
+  island,
+
+  /// Container of a whole toolbar area holding islands. Glass: transparent
+  /// (islands float over the content). Material: the docked tonal bar.
+  chrome,
 }
 
 /// Style-agnostic container. Glass renders a blurred, refracting material;

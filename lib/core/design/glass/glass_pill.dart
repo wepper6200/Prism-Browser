@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+﻿import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
@@ -74,7 +74,7 @@ class GlassPillStyle {
         rimBottom: dark ? a(white, 0.06) : a(t.danger, 0.35),
         sheen: a(white, dark ? 0.10 : 0.40),
         foreground: dark
-            ? Color.lerp(t.danger, white, 0.5)!
+            ? Color.lerp(t.danger, white, 0.6)!
             : Color.lerp(t.danger, t.onSurface, 0.25)!,
       ),
       GlassTone.recessed => GlassPillStyle(

@@ -89,17 +89,25 @@ class MaterialDesign extends PrismDesign {
     PrismSurfaceKind.panel => BorderRadius.circular(t.radiusXl),
     PrismSurfaceKind.card => BorderRadius.circular(t.radiusLg),
     PrismSurfaceKind.menu => BorderRadius.circular(t.radiusSm),
+    PrismSurfaceKind.island => BorderRadius.zero,
+    PrismSurfaceKind.chrome => BorderRadius.zero,
   };
 
   @override
   Widget buildSurface(BuildContext context, PrismSurface s) {
     final t = PrismTokens.of(context);
     final scheme = Theme.of(context).colorScheme;
+    // M3: groups inside a docked bar carry no container of their own.
+    if (s.kind == PrismSurfaceKind.island) {
+      return Padding(padding: s.padding, child: s.child);
+    }
     final color = switch (s.kind) {
       PrismSurfaceKind.bar => scheme.surfaceContainer,
       PrismSurfaceKind.panel => scheme.surfaceContainerLow,
       PrismSurfaceKind.card => scheme.surfaceContainerHigh,
       PrismSurfaceKind.menu => scheme.surfaceContainer,
+      PrismSurfaceKind.chrome => scheme.surfaceContainer,
+      PrismSurfaceKind.island => Colors.transparent,
     };
     final radius = s.borderRadius ?? _radius(t, s.kind);
     return Material(
