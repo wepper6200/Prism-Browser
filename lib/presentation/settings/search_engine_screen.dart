@@ -2,6 +2,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../application/browser/browser_providers.dart';
+import '../../core/design/components/prism_button.dart';
 import '../../core/design/components/prism_controls.dart';
 import '../../core/design/components/prism_list.dart';
 import '../../core/design/prism_icons.dart';
@@ -10,6 +11,7 @@ import '../../domain/browser/models.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../common/prism_page.dart';
 import '../common/site_visuals.dart';
+import 'custom_search_sheet.dart';
 
 class SearchEngineScreen extends ConsumerStatefulWidget {
   const SearchEngineScreen({super.key});
@@ -53,6 +55,7 @@ class SearchEngineList extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final t = PrismTokens.of(context);
     final current = ref.watch(searchEngineProvider);
+    final custom = ref.watch(customSearchProvider);
     return PrismSection(
       children: [
         for (final e in SearchEngine.all)
@@ -98,14 +101,42 @@ class SearchEngineList extends ConsumerWidget {
               ),
             ),
           ),
-        PrismTile(
-          icon: PrismIcons.link,
-          tone: PrismBadgeTone.neutral,
-          title: l.searchCustom,
-          subtitle: l.searchCustomSub,
-          chevron: true,
-          onTap: () {},
-        ),
+        if (custom == null)
+          PrismTile(
+            icon: PrismIcons.link,
+            tone: PrismBadgeTone.neutral,
+            title: l.searchCustom,
+            subtitle: l.searchCustomSub,
+            chevron: true,
+            onTap: () => showCustomSearchSheet(context),
+          )
+        else
+          Semantics(
+            selected: current == SearchEngineId.custom,
+            inMutuallyExclusiveGroup: true,
+            child: PrismTile(
+              icon: PrismIcons.link,
+              tone: PrismBadgeTone.neutral,
+              title: custom.name,
+              subtitle: hostOf(custom.queryTemplate.replaceFirst('%s', 'q')),
+              onTap: () => ref
+                  .read(searchEngineProvider.notifier)
+                  .set(SearchEngineId.custom),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PrismIconButton(
+                    icon: PrismIcons.appearance,
+                    tooltip: l.actionEdit,
+                    onPressed: () => showCustomSearchSheet(context),
+                  ),
+                  current == SearchEngineId.custom
+                      ? const Icon(PrismIcons.success, size: 22)
+                      : const SizedBox(width: 22),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }

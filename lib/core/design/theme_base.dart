@@ -29,6 +29,40 @@ ThemeData buildBaseTheme({
     focusColor: tokens.accent.withValues(alpha: 0.24),
     iconTheme: IconThemeData(color: tokens.onSurface, size: 22),
     dividerTheme: DividerThemeData(color: tokens.outline, thickness: 1),
+    // Forms: filled fields, visible label above, clear focus and error.
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: tokens.onSurface.withValues(alpha: 0.06),
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      labelStyle: text.labelLarge?.copyWith(color: tokens.onSurfaceMuted),
+      floatingLabelStyle: text.labelLarge?.copyWith(color: tokens.onSurface),
+      hintStyle: text.bodyLarge?.copyWith(color: tokens.onSurfaceMuted),
+      helperStyle: text.bodySmall,
+      helperMaxLines: 3,
+      errorStyle: text.bodySmall?.copyWith(color: tokens.danger),
+      errorMaxLines: 3,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        borderSide: BorderSide(color: tokens.outline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        borderSide: BorderSide(color: tokens.outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        borderSide: BorderSide(color: tokens.onSurface, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        borderSide: BorderSide(color: tokens.danger),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        borderSide: BorderSide(color: tokens.danger, width: 2),
+      ),
+    ),
     // 3 segments must fit a 360dp phone without wrapping labels.
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(

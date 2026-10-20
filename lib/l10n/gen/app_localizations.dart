@@ -1316,6 +1316,78 @@ abstract class AppLocalizations {
   /// **'Use %s where the query goes'**
   String get searchCustomSub;
 
+  /// No description provided for @customSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom search engine'**
+  String get customSearchTitle;
+
+  /// No description provided for @customSearchName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get customSearchName;
+
+  /// No description provided for @customSearchNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, SearXNG'**
+  String get customSearchNameHint;
+
+  /// No description provided for @customSearchUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Search URL'**
+  String get customSearchUrl;
+
+  /// No description provided for @customSearchUrlHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Put %s where the query goes. Example: https://searx.be/search?q=%s'**
+  String get customSearchUrlHelp;
+
+  /// No description provided for @customErrEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a search URL'**
+  String get customErrEmpty;
+
+  /// No description provided for @customErrUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Use an address like https://site/path?q=%s'**
+  String get customErrUrl;
+
+  /// No description provided for @customErrNoPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add %s where the query should go'**
+  String get customErrNoPlaceholder;
+
+  /// No description provided for @customErrMany.
+  ///
+  /// In en, this message translates to:
+  /// **'%s must appear exactly once'**
+  String get customErrMany;
+
+  /// No description provided for @customInsecure.
+  ///
+  /// In en, this message translates to:
+  /// **'No HTTPS: your searches will be visible on the network'**
+  String get customInsecure;
+
+  /// No description provided for @actionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get actionSave;
+
+  /// No description provided for @actionEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get actionEdit;
+
   /// No description provided for @searchSuggestions.
   ///
   /// In en, this message translates to:

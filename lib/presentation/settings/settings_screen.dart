@@ -7,7 +7,6 @@ import '../../application/browser/browser_providers.dart';
 import '../../core/design/components/prism_controls.dart';
 import '../../core/design/components/prism_list.dart';
 import '../../core/design/prism_icons.dart';
-import '../../domain/browser/models.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../common/prism_page.dart';
 
@@ -17,7 +16,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final engine = SearchEngine.byId(ref.watch(searchEngineProvider));
+    final engine = ref.watch(activeSearchEngineProvider);
     final android = defaultTargetPlatform == TargetPlatform.android;
     return PrismPage(
       title: l.settingsTitle,

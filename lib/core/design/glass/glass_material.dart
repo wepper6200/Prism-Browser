@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+﻿import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
@@ -23,7 +23,15 @@ class GlassMaterial extends StatelessWidget {
     this.borderColor,
     this.borderWidth = 1,
     this.shadow = false,
+    this.blur = true,
   });
+
+  /// False for content surfaces (cards) that sit on the already-soft Prism
+  /// backdrop: a backdrop blur there is visually near-identical but costs a
+  /// full offscreen pass per surface per frame (measured: 138 ms raster
+  /// per transition frame in Glass vs 20 ms in Material). Tint, rim and
+  /// highlight stay, so the material still reads as glass.
+  final bool blur;
 
   final BorderRadius borderRadius;
   final Widget child;
@@ -39,14 +47,31 @@ class GlassMaterial extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Live backdrop blur is the most expensive thing on screen (~22 ms of
+    // raster per bar per frame measured on transitions). While the page
+    // route is animating, the page content under the bar moves anyway, so
+    // a denser tint is used instead and the blur returns when it settles.
+    final route = ModalRoute.of(context);
+    if (blur && route is PageRoute) {
+      return _RouteMotion(
+        route: route,
+        builder: (moving) => _compose(context, liveBlur: !moving),
+      );
+    }
+    return _compose(context, liveBlur: blur);
+  }
+
+  Widget _compose(BuildContext context, {required bool liveBlur}) {
     final t = PrismTokens.of(context);
     final fx = EffectsPolicy.of(context);
     final strength = fx.glassStrength;
+    // Without the blur, a little more tint keeps text on the bar readable.
+    final compensate = blur && !liveBlur ? 0.25 : 0.0;
 
     final painter = _GlassPainter(
       radius: borderRadius,
       tint: strength > 0
-          ? _boost(t.glassTint, tintBoost + (1 - strength) * 0.6)
+          ? _boost(t.glassTint, tintBoost + compensate + (1 - strength) * 0.6)
           : t.surfaceRaised,
       highlight: t.glassHighlight.withValues(
         alpha: t.glassHighlight.a * strength,
@@ -61,7 +86,7 @@ class GlassMaterial extends StatelessWidget {
       child: Padding(padding: padding, child: child),
     );
 
-    if (strength > 0 && t.blurSigma > 0) {
+    if (liveBlur && strength > 0 && t.blurSigma > 0) {
       final sigma = t.blurSigma * strength;
       body = ClipRRect(
         borderRadius: borderRadius,
@@ -93,6 +118,72 @@ class GlassMaterial extends StatelessWidget {
 
   static Color _boost(Color c, double extra) =>
       c.withValues(alpha: (c.a + extra).clamp(0.0, 1.0));
+}
+
+/// Rebuilds only when the page route starts/stops moving (its own
+/// push/pop animation or the one of the route covering it), never per
+/// animation tick.
+class _RouteMotion extends StatefulWidget {
+  const _RouteMotion({required this.route, required this.builder});
+
+  final PageRoute<dynamic> route;
+  final Widget Function(bool moving) builder;
+
+  @override
+  State<_RouteMotion> createState() => _RouteMotionState();
+}
+
+class _RouteMotionState extends State<_RouteMotion> {
+  Animation<double>? _a;
+  Animation<double>? _b;
+  bool _moving = false;
+
+  static bool _isMoving(Animation<double>? a) =>
+      a != null &&
+      (a.status == AnimationStatus.forward ||
+          a.status == AnimationStatus.reverse);
+
+  bool get _now => _isMoving(_a) || _isMoving(_b);
+
+  void _onStatus(AnimationStatus _) {
+    final m = _now;
+    if (m != _moving && mounted) setState(() => _moving = m);
+  }
+
+  void _attach() {
+    _a = widget.route.animation?..addStatusListener(_onStatus);
+    _b = widget.route.secondaryAnimation?..addStatusListener(_onStatus);
+    _moving = _now;
+  }
+
+  void _detach() {
+    _a?.removeStatusListener(_onStatus);
+    _b?.removeStatusListener(_onStatus);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _attach();
+  }
+
+  @override
+  void didUpdateWidget(_RouteMotion old) {
+    super.didUpdateWidget(old);
+    if (old.route != widget.route) {
+      _detach();
+      _attach();
+    }
+  }
+
+  @override
+  void dispose() {
+    _detach();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_moving);
 }
 
 class _GlassPainter extends CustomPainter {

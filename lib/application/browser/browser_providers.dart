@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/engine/fake_engine.dart';
@@ -267,7 +267,7 @@ class BrowserActions {
 
   /// Omnibox / speed-dial input: address or search query.
   Future<void> open(String input) async {
-    final engine = SearchEngine.byId(_ref.read(searchEngineProvider));
+    final engine = _ref.read(activeSearchEngineProvider);
     final uri = UrlResolver.resolve(
       input,
       searchTemplate: engine.queryTemplate,
@@ -340,10 +340,80 @@ class SearchEngineController extends Notifier<SearchEngineId> {
   }
 
   void set(SearchEngineId id) {
+    // "Custom" without a saved template would search nowhere.
+    if (id == SearchEngineId.custom && ref.read(customSearchProvider) == null) {
+      return;
+    }
     state = id;
     ref.read(sharedPreferencesProvider).setString(_key, id.name).ignore();
   }
 }
+
+/// The user's own search engine ("Custom URL"), or null when not set.
+final customSearchProvider =
+    NotifierProvider<CustomSearchController, SearchEngine?>(
+      CustomSearchController.new,
+    );
+
+class CustomSearchController extends Notifier<SearchEngine?> {
+  static const _kName = 'search.custom.name';
+  static const _kTemplate = 'search.custom.template';
+
+  @override
+  SearchEngine? build() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final template = prefs.getString(_kTemplate);
+    if (template == null) return null;
+    // Re-validate stored data (never trust persisted input blindly).
+    final checked = CustomSearchTemplate.validate(template);
+    if (!checked.isValid) return null;
+    return SearchEngine.custom(
+      name:
+          prefs.getString(_kName) ??
+          CustomSearchTemplate.suggestName(checked.template!),
+      template: checked.template!,
+    );
+  }
+
+  /// Validates, saves and selects the custom engine. Returns the error, if
+  /// any, so the form can show it next to the field.
+  CustomTemplateError? save({required String name, required String template}) {
+    final checked = CustomSearchTemplate.validate(template);
+    if (!checked.isValid) return checked.error;
+    final cleanName = name.trim().isEmpty
+        ? CustomSearchTemplate.suggestName(checked.template!)
+        : name.trim();
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.setString(_kName, cleanName).ignore();
+    prefs.setString(_kTemplate, checked.template!).ignore();
+    state = SearchEngine.custom(name: cleanName, template: checked.template!);
+    ref.read(searchEngineProvider.notifier).set(SearchEngineId.custom);
+    return null;
+  }
+
+  /// Removes the custom engine; falls back to DuckDuckGo if it was active.
+  void remove() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.remove(_kName).ignore();
+    prefs.remove(_kTemplate).ignore();
+    if (ref.read(searchEngineProvider) == SearchEngineId.custom) {
+      ref.read(searchEngineProvider.notifier).set(SearchEngineId.duckduckgo);
+    }
+    state = null;
+  }
+}
+
+/// The engine actually used for searches (built-in or custom).
+final activeSearchEngineProvider = Provider<SearchEngine>((ref) {
+  final id = ref.watch(searchEngineProvider);
+  if (id == SearchEngineId.custom) {
+    final custom = ref.watch(customSearchProvider);
+    if (custom != null) return custom;
+  }
+  return SearchEngine.byId(
+    id == SearchEngineId.custom ? SearchEngineId.duckduckgo : id,
+  );
+});
 
 final privacyProvider = NotifierProvider<PrivacyController, PrivacySettings>(
   PrivacyController.new,

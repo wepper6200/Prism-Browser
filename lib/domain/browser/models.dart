@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../engine/punycode.dart';
+
 /// Browser domain models. Pure Dart: persisted by drift in stage 4,
 /// served from in-memory mocks in stage 2.
 
@@ -204,6 +206,106 @@ class SearchEngine {
 
   static SearchEngine byId(SearchEngineId id) =>
       all.firstWhere((e) => e.id == id, orElse: () => all.first);
+
+  /// User-defined engine ("Custom URL"). Privacy unknown, so no badge.
+  factory SearchEngine.custom({
+    required String name,
+    required String template,
+  }) => SearchEngine(
+    id: SearchEngineId.custom,
+    name: name,
+    queryTemplate: template,
+    privacyFriendly: false,
+  );
+}
+
+enum CustomTemplateError {
+  empty,
+  invalidUrl,
+  missingPlaceholder,
+  tooManyPlaceholders,
+}
+
+/// Validation result: a normalized template or an error.
+@immutable
+class CustomTemplateResult {
+  const CustomTemplateResult._(this.template, this.error);
+
+  final String? template;
+  final CustomTemplateError? error;
+
+  bool get isValid => error == null;
+
+  /// Plain HTTP leaks every query to the network: the UI warns.
+  bool get insecure => template?.startsWith('http://') ?? false;
+}
+
+/// Checks and normalizes a custom search URL template.
+abstract final class CustomSearchTemplate {
+  static const placeholder = '%s';
+
+  static CustomTemplateResult validate(String input) {
+    var t = input.trim();
+    if (t.isEmpty) {
+      return const CustomTemplateResult._(null, CustomTemplateError.empty);
+    }
+    // OpenSearch descriptions use {searchTerms}.
+    t = t.replaceAll('{searchTerms}', placeholder);
+    final count = placeholder.allMatches(t).length;
+    if (count == 0) {
+      return const CustomTemplateResult._(
+        null,
+        CustomTemplateError.missingPlaceholder,
+      );
+    }
+    if (count > 1) {
+      return const CustomTemplateResult._(
+        null,
+        CustomTemplateError.tooManyPlaceholders,
+      );
+    }
+    final hasScheme = RegExp(
+      r'^[a-z][a-z0-9+.-]*://',
+      caseSensitive: false,
+    ).hasMatch(t);
+    if (!hasScheme) {
+      if (RegExp(r'^[a-z][a-z0-9+.-]*:', caseSensitive: false).hasMatch(t) &&
+          !RegExp(r'^[^/:]+:\d').hasMatch(t)) {
+        // javascript:, data:, mailto: ... never.
+        return const CustomTemplateResult._(
+          null,
+          CustomTemplateError.invalidUrl,
+        );
+      }
+      t = 'https://$t';
+    }
+    // Validate with a sample query in place of the placeholder.
+    final probe = Uri.tryParse(t.replaceFirst(placeholder, 'prism'));
+    if (probe == null ||
+        !(probe.scheme == 'https' || probe.scheme == 'http') ||
+        probe.host.isEmpty ||
+        !probe.host.contains(RegExp(r'[.\]]|^localhost$'))) {
+      return const CustomTemplateResult._(null, CustomTemplateError.invalidUrl);
+    }
+    // Host to ASCII (IDN), scheme lower-case; the rest is kept verbatim.
+    final m = RegExp(
+      r'^([a-z]+)://([^/?#:]+)(.*)$',
+      caseSensitive: false,
+    ).firstMatch(t)!;
+    final normalized = '${m[1]!.toLowerCase()}://${_asciiHost(m[2]!)}${m[3]}';
+    return CustomTemplateResult._(normalized, null);
+  }
+
+  /// Display name proposal from the template host ("search.example.org").
+  static String suggestName(String template) {
+    final host =
+        Uri.tryParse(template.replaceFirst(placeholder, 'q'))?.host ?? '';
+    return host.startsWith('www.') ? host.substring(4) : host;
+  }
+
+  static String _asciiHost(String host) => host.runes.any((c) => c >= 0x80)
+      ? Punycode.toAscii(host)
+      : host.toLowerCase();
 }
 
 enum PrivacyProfile { standard, strict, custom }

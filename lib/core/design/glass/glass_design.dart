@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+﻿import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/settings/appearance.dart';
 import '../components/prism_address_field.dart';
@@ -118,6 +118,8 @@ class GlassDesign extends PrismDesign {
     final t = PrismTokens.of(context);
     return GlassMaterial(
       borderRadius: s.borderRadius ?? _radius(t, s.kind),
+      // Content cards: no backdrop blur (see GlassMaterial.blur).
+      blur: s.kind != PrismSurfaceKind.card,
       padding: s.padding,
       tintBoost: s.kind == PrismSurfaceKind.menu ? 0.15 : 0,
       shadow: s.kind == PrismSurfaceKind.menu,
@@ -236,6 +238,7 @@ class GlassDesign extends PrismDesign {
       label: c.title,
       child: GlassMaterial(
         borderRadius: radius,
+        blur: false,
         borderColor: c.selected
             ? t.accent
             : (c.incognito ? t.incognito.withValues(alpha: 0.6) : null),
@@ -387,20 +390,33 @@ class GlassDesign extends PrismDesign {
           final selected = states.contains(WidgetState.selected);
           final e = _emphasis(states);
           if (!selected && e == 0) return child ?? const SizedBox.shrink();
-          return AnimatedOpacity(
-            opacity: selected ? 1 : e,
-            duration: PrismMotion.of(context).fast,
-            child: GlassPill(
-              tone: selected ? GlassTone.accent : GlassTone.neutral,
-              emphasis: selected ? e : 0,
-              child: child,
-            ),
+          // Visual lens is 36dp inside the 48dp hit area (user feedback:
+          // a full-size circle looked oversized next to bars and tabs).
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              AnimatedOpacity(
+                opacity: selected ? 1 : e,
+                duration: PrismMotion.of(context).fast,
+                child: SizedBox.square(
+                  dimension: _lensSize,
+                  child: GlassPill(
+                    tone: selected ? GlassTone.accent : GlassTone.neutral,
+                    emphasis: selected ? e : 0,
+                  ),
+                ),
+              ),
+              ?child,
+            ],
           );
         },
         side: focusRing(t),
       ),
     );
   }
+
+  /// Visible diameter of an icon button's glass lens (hit area stays 48).
+  static const double _lensSize = 36;
 
   /// Hover/focus brighten the lens a little, press brightens it fully.
   static double _emphasis(Set<WidgetState> s) {

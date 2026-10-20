@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../application/browser/browser_providers.dart';
@@ -8,7 +8,6 @@ import '../../core/design/components/prism_surface.dart';
 import '../../core/design/prism_icons.dart';
 import '../../core/design/tokens.dart';
 import '../../data/mock/mock_data.dart';
-import '../../domain/browser/models.dart';
 import '../../domain/engine/url_resolver.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../common/site_visuals.dart';
@@ -69,7 +68,7 @@ class _OmniboxPanelState extends ConsumerState<OmniboxPanel> {
     final t = PrismTokens.of(context);
     final text = Theme.of(context).textTheme;
     final query = _controller.text;
-    final engine = SearchEngine.byId(ref.watch(searchEngineProvider));
+    final engine = ref.watch(activeSearchEngineProvider);
     final suggestions = ref.watch(omniboxSuggestionsProvider(query));
     final top = MediaQuery.paddingOf(context).top;
 

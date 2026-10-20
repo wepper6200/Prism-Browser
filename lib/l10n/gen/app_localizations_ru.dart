@@ -699,6 +699,45 @@ class AppLocalizationsRu extends AppLocalizations {
   String get searchCustomSub => 'Поставьте %s на место запроса';
 
   @override
+  String get customSearchTitle => 'Своя поисковая система';
+
+  @override
+  String get customSearchName => 'Название';
+
+  @override
+  String get customSearchNameHint => 'Например, SearXNG';
+
+  @override
+  String get customSearchUrl => 'Адрес поиска';
+
+  @override
+  String get customSearchUrlHelp =>
+      'Поставьте %s туда, где должен стоять запрос. Пример: https://searx.be/search?q=%s';
+
+  @override
+  String get customErrEmpty => 'Введите адрес поиска';
+
+  @override
+  String get customErrUrl => 'Нужен адрес вида https://сайт/путь?q=%s';
+
+  @override
+  String get customErrNoPlaceholder =>
+      'Добавьте %s в то место, куда подставляется запрос';
+
+  @override
+  String get customErrMany => '%s должен встречаться ровно один раз';
+
+  @override
+  String get customInsecure =>
+      'Адрес без HTTPS: ваши запросы будут видны в сети';
+
+  @override
+  String get actionSave => 'Сохранить';
+
+  @override
+  String get actionEdit => 'Изменить';
+
+  @override
   String get searchSuggestions => 'Поисковые подсказки';
 
   @override

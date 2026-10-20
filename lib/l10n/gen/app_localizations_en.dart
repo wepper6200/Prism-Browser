@@ -688,6 +688,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchCustomSub => 'Use %s where the query goes';
 
   @override
+  String get customSearchTitle => 'Custom search engine';
+
+  @override
+  String get customSearchName => 'Name';
+
+  @override
+  String get customSearchNameHint => 'For example, SearXNG';
+
+  @override
+  String get customSearchUrl => 'Search URL';
+
+  @override
+  String get customSearchUrlHelp =>
+      'Put %s where the query goes. Example: https://searx.be/search?q=%s';
+
+  @override
+  String get customErrEmpty => 'Enter a search URL';
+
+  @override
+  String get customErrUrl => 'Use an address like https://site/path?q=%s';
+
+  @override
+  String get customErrNoPlaceholder => 'Add %s where the query should go';
+
+  @override
+  String get customErrMany => '%s must appear exactly once';
+
+  @override
+  String get customInsecure =>
+      'No HTTPS: your searches will be visible on the network';
+
+  @override
+  String get actionSave => 'Save';
+
+  @override
+  String get actionEdit => 'Edit';
+
+  @override
   String get searchSuggestions => 'Search suggestions';
 
   @override
