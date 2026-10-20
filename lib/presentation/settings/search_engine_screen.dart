@@ -9,7 +9,6 @@ import '../../core/design/prism_icons.dart';
 import '../../core/design/tokens.dart';
 import '../../domain/browser/models.dart';
 import '../../l10n/gen/app_localizations.dart';
-import '../browser/start_page.dart';
 import '../common/prism_page.dart';
 import '../common/site_visuals.dart';
 import 'custom_search_sheet.dart';
@@ -31,19 +30,6 @@ class _SearchEngineScreenState extends ConsumerState<SearchEngineScreen> {
       title: l.settingsSearch,
       children: [
         const SearchEngineList(),
-        PrismSection(
-          title: l.searchPrismSection,
-          footer: l.psPrivacy,
-          children: [
-            PrismSwitchTile(
-              icon: PrismIcons.reader,
-              title: l.searchInstantAnswers,
-              subtitle: l.searchInstantAnswersSub,
-              value: ref.watch(instantAnswersProvider),
-              onChanged: ref.read(instantAnswersProvider.notifier).set,
-            ),
-          ],
-        ),
         PrismSection(
           children: [
             PrismSwitchTile(
@@ -77,21 +63,13 @@ class SearchEngineList extends ConsumerWidget {
             selected: current == e.id,
             inMutuallyExclusiveGroup: true,
             child: PrismTile(
-              leading: e.isPrism
-                  ? const SizedBox.square(
-                      dimension: 40,
-                      child: Padding(
-                        padding: EdgeInsets.all(4),
-                        child: PrismLogo(),
-                      ),
-                    )
-                  : LetterFavicon(
-                      label: e.name,
-                      host: hostOf(e.queryTemplate),
-                      size: 40,
-                    ),
+              leading: LetterFavicon(
+                label: e.name,
+                host: hostOf(e.queryTemplate),
+                size: 40,
+              ),
               title: e.name,
-              subtitle: e.isPrism ? l.searchPrismSub : hostOf(e.queryTemplate),
+              subtitle: hostOf(e.queryTemplate),
               limitedLabel: null,
               onTap: () => ref.read(searchEngineProvider.notifier).set(e.id),
               trailing: Row(

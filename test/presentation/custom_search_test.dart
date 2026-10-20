@@ -56,8 +56,8 @@ void main() {
       'https://searx.example.org/search?q=${Uri.encodeQueryComponent('призма')}',
     );
 
-    // Removing the custom engine falls back to Prism Search.
+    // Removing the custom engine falls back to DuckDuckGo.
     c.read(customSearchProvider.notifier).remove();
-    expect(c.read(activeSearchEngineProvider).id, SearchEngineId.prism);
+    expect(c.read(activeSearchEngineProvider).id, SearchEngineId.duckduckgo);
   });
 }

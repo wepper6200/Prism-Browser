@@ -4,13 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/engine/fake_engine.dart';
 import '../../data/engine/inappwebview_engine.dart';
 import '../../data/mock/mock_data.dart';
-import '../../data/search/wikipedia_source.dart';
 import '../../domain/browser/models.dart';
 import '../../domain/engine/browser_engine.dart';
 import '../../domain/engine/url_resolver.dart';
-import '../../domain/search/prism_search.dart';
 import '../settings/appearance_controller.dart';
-import 'native_nav_session.dart';
 
 /// Application state. Tabs/library are still backed by [MockData] (drift
 /// in stage 4); pages come from the real engine since stage 3.
@@ -187,16 +184,11 @@ final sessionProvider = Provider.family<TabSession, String>((ref, tabId) {
     (t) => t.id == tabId,
     orElse: () => BrowserTab(id: tabId, title: '', url: ''),
   );
-  final initial = tab.url.isEmpty ? null : Uri.tryParse(tab.url);
-  final query = PrismSearchUri.queryOf(initial);
-  final session = NativeNavSession(
-    engine.createSession(
-      tabId: tabId,
-      incognito: tab.incognito,
-      initialUrl: query == null ? initial : null,
-      initialTitle: query == null && tab.title.isNotEmpty ? tab.title : null,
-    ),
-    initialQuery: query,
+  final session = engine.createSession(
+    tabId: tabId,
+    incognito: tab.incognito,
+    initialUrl: tab.url.isEmpty ? null : Uri.tryParse(tab.url),
+    initialTitle: tab.title.isEmpty ? null : tab.title,
   );
   ref.onDispose(session.dispose);
   return session;
@@ -243,10 +235,6 @@ class PageState {
 
   /// No navigation yet: the native start page is shown.
   bool get isBlank => session.isBlank;
-
-  /// A page drawn by Prism itself (start page, Prism Search): no site, so
-  /// no blocker counter or site controls.
-  bool get isNative => isBlank || PrismSearchUri.queryOf(url) != null;
   double get progress => session.progress;
   bool get loading => session.loading;
   int get blockedCount => session.blockedCount;
@@ -285,40 +273,13 @@ class BrowserActions {
       searchTemplate: engine.queryTemplate,
     );
     if (uri == null) return;
-    await openUri(uri);
-  }
-
-  /// Loads [uri] in the active tab. Prism Search pages are native: they
-  /// need neither the web engine nor the network.
-  Future<void> openUri(Uri uri) async {
-    if (PrismSearchUri.queryOf(uri) == null) {
-      await _ref.read(engineProvider).warmUp();
-    }
+    await _ref.read(engineProvider).warmUp();
     await _active.load(uri);
-  }
-
-  /// "Search the web" from Prism Search with a web engine.
-  Future<void> searchWeb(String query, SearchEngine engine) {
-    final uri = Uri.parse(
-      engine.queryTemplate.replaceAll('%s', Uri.encodeQueryComponent(query)),
-    );
-    return openUri(uri);
   }
 
   Future<void> back() => _active.goBack();
   Future<void> forward() => _active.goForward();
-
-  /// On Prism Search, asks for the instant answer again.
-  Future<void> reload() {
-    final query = PrismSearchUri.queryOf(_active.state.value.url);
-    if (query != null) {
-      _ref.read(knowledgeCacheProvider).removeWhere((k, _) => k.$1 == query);
-      _ref.invalidate(knowledgeProvider);
-      return Future.value();
-    }
-    return _active.reload();
-  }
-
+  Future<void> reload() => _active.reload();
   Future<void> stop() => _active.stopLoading();
 }
 
@@ -374,7 +335,7 @@ class SearchEngineController extends Notifier<SearchEngineId> {
     final name = ref.read(sharedPreferencesProvider).getString(_key);
     return SearchEngineId.values.firstWhere(
       (e) => e.name == name,
-      orElse: () => SearchEngineId.prism,
+      orElse: () => SearchEngineId.duckduckgo,
     );
   }
 
@@ -430,13 +391,13 @@ class CustomSearchController extends Notifier<SearchEngine?> {
     return null;
   }
 
-  /// Removes the custom engine; falls back to Prism Search if it was active.
+  /// Removes the custom engine; falls back to DuckDuckGo if it was active.
   void remove() {
     final prefs = ref.read(sharedPreferencesProvider);
     prefs.remove(_kName).ignore();
     prefs.remove(_kTemplate).ignore();
     if (ref.read(searchEngineProvider) == SearchEngineId.custom) {
-      ref.read(searchEngineProvider.notifier).set(SearchEngineId.prism);
+      ref.read(searchEngineProvider.notifier).set(SearchEngineId.duckduckgo);
     }
     state = null;
   }
@@ -450,71 +411,9 @@ final activeSearchEngineProvider = Provider<SearchEngine>((ref) {
     if (custom != null) return custom;
   }
   return SearchEngine.byId(
-    id == SearchEngineId.custom ? SearchEngineId.prism : id,
+    id == SearchEngineId.custom ? SearchEngineId.duckduckgo : id,
   );
 });
-
-/// Web engines offered on the Prism Search page ("Search the web"): the
-/// built-in ones plus the user's custom engine.
-final webSearchEnginesProvider = Provider<List<SearchEngine>>((ref) {
-  final custom = ref.watch(customSearchProvider);
-  return [...SearchEngine.web, ?custom];
-});
-
-/// Encyclopedia answers on Prism Search (on by default; one HTTPS request
-/// to Wikipedia per results page, only after the query is submitted).
-final instantAnswersProvider = NotifierProvider<InstantAnswersController, bool>(
-  InstantAnswersController.new,
-);
-
-class InstantAnswersController extends Notifier<bool> {
-  static const _key = 'search.prism.instantAnswers';
-
-  @override
-  bool build() => ref.read(sharedPreferencesProvider).getBool(_key) ?? true;
-
-  void set(bool value) {
-    state = value;
-    ref.read(sharedPreferencesProvider).setBool(_key, value).ignore();
-  }
-}
-
-final knowledgeSourceProvider = Provider<KnowledgeSource>(
-  (ref) => WikipediaSource(),
-);
-
-/// Recent answers in memory only (never on disk), so Back to a results
-/// page does not ask Wikipedia again.
-final knowledgeCacheProvider =
-    Provider<Map<(String, String), List<KnowledgePage>>>((ref) => {});
-
-/// Encyclopedia pages for a Prism Search (query, language).
-final knowledgeProvider = FutureProvider.autoDispose
-    .family<List<KnowledgePage>, (String, String)>((ref, args) async {
-      if (!ref.watch(instantAnswersProvider)) return const [];
-      final cache = ref.read(knowledgeCacheProvider);
-      final cached = cache[args];
-      if (cached != null) return cached;
-      final (query, lang) = args;
-      final pages = await ref
-          .read(knowledgeSourceProvider)
-          .search(query, lang: lang);
-      cache[args] = pages;
-      if (cache.length > 20) cache.remove(cache.keys.first);
-      return pages;
-    });
-
-/// Open tabs, bookmarks and history matching a Prism Search query.
-final localMatchesProvider = Provider.autoDispose
-    .family<List<LocalMatch>, String>((ref, query) {
-      final tabs = ref.watch(tabsProvider.select((s) => s.tabs));
-      return LocalSearch.match(
-        query,
-        tabs: tabs,
-        bookmarks: ref.watch(bookmarksProvider),
-        history: ref.watch(historyProvider),
-      );
-    });
 
 final privacyProvider = NotifierProvider<PrivacyController, PrivacySettings>(
   PrivacyController.new,

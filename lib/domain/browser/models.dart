@@ -138,7 +138,6 @@ class DownloadItem {
 }
 
 enum SearchEngineId {
-  prism,
   duckduckgo,
   brave,
   startpage,
@@ -167,14 +166,6 @@ class SearchEngine {
   final bool privacyFriendly;
 
   static const all = [
-    // Built-in results page (PrismSearchUri): answers on the device, web
-    // results one tap away on a web engine. The default.
-    SearchEngine(
-      id: SearchEngineId.prism,
-      name: 'Prism Search',
-      queryTemplate: 'prism://search?q=%s',
-      privacyFriendly: true,
-    ),
     SearchEngine(
       id: SearchEngineId.duckduckgo,
       name: 'DuckDuckGo',
@@ -215,12 +206,6 @@ class SearchEngine {
 
   static SearchEngine byId(SearchEngineId id) =>
       all.firstWhere((e) => e.id == id, orElse: () => all.first);
-
-  /// Engines that return web results (everything but Prism Search).
-  static Iterable<SearchEngine> get web =>
-      all.where((e) => e.id != SearchEngineId.prism);
-
-  bool get isPrism => id == SearchEngineId.prism;
 
   /// User-defined engine ("Custom URL"). Privacy unknown, so no badge.
   factory SearchEngine.custom({

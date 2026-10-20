@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// Web engine abstraction. The UI never talks to a WebView plugin directly:
@@ -78,12 +78,7 @@ class TabSessionState {
     this.canGoForward = false,
     this.error,
     this.blockedCount = 0,
-    this.historyIndex = -1,
   });
-
-  /// Position in the engine's back/forward list (-1: nothing loaded yet).
-  /// Lets native pages (Prism Search) sit between web history entries.
-  final int historyIndex;
 
   /// Requests blocked on the current page (blocker, stage 5).
   final int blockedCount;
@@ -119,7 +114,6 @@ class TabSessionState {
     String? error,
     bool clearError = false,
     int? blockedCount,
-    int? historyIndex,
   }) => TabSessionState(
     url: url ?? this.url,
     title: title ?? this.title,
@@ -128,7 +122,6 @@ class TabSessionState {
     canGoForward: canGoForward ?? this.canGoForward,
     error: clearError ? null : (error ?? this.error),
     blockedCount: blockedCount ?? this.blockedCount,
-    historyIndex: historyIndex ?? this.historyIndex,
   );
 
   @override
@@ -140,8 +133,7 @@ class TabSessionState {
       other.canGoBack == canGoBack &&
       other.canGoForward == canGoForward &&
       other.error == error &&
-      other.blockedCount == blockedCount &&
-      other.historyIndex == historyIndex;
+      other.blockedCount == blockedCount;
 
   @override
   int get hashCode => Object.hash(
@@ -152,7 +144,6 @@ class TabSessionState {
     canGoForward,
     error,
     blockedCount,
-    historyIndex,
   );
 }
 

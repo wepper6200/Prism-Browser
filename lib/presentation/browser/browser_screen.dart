@@ -14,10 +14,8 @@ import '../../core/design/effects_policy.dart';
 import '../../core/design/prism_icons.dart';
 import '../../core/design/tokens.dart';
 import '../../domain/engine/url_resolver.dart';
-import '../../domain/search/prism_search.dart';
 import '../../domain/settings/appearance.dart';
 import '../../l10n/gen/app_localizations.dart';
-import '../search/prism_search_page.dart';
 import 'browser_sheets.dart';
 import 'chrome_widgets.dart';
 import 'desktop_chrome.dart';
@@ -157,8 +155,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
         : pad.top + (barBottom ? 0 : bar);
     final bottomInset = wide ? 0.0 : pad.bottom + bar * (barBottom ? 2 : 1);
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final searchQuery = PrismSearchUri.queryOf(page.url);
-    final onWeb = !page.isBlank && searchQuery == null;
+    final onWeb = !page.isBlank;
     final insets = EdgeInsets.only(top: topInset, bottom: bottomInset);
     // Glass over a page Flutter cannot sample (Hybrid Composition) would
     // show sharp page text through the tint: use the opaque fallback.
@@ -174,12 +171,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             incognito: page.tab.incognito,
             onSearchTap: () => _setPanel(BrowserPanel.omnibox),
             onOpen: _open,
-          )
-        : searchQuery != null
-        ? PrismSearchPage(
-            query: searchQuery,
-            topInset: topInset,
-            bottomInset: bottomInset,
           )
         : PageHost(tabId: page.tab.id, insets: insets);
 
@@ -328,7 +319,7 @@ class _AddressBar extends ConsumerWidget {
           PageSecurity.internal => null,
         },
         onTap: onOmnibox,
-        trailing: page.isNative
+        trailing: page.isBlank
             ? null
             : ShieldChip(count: page.blockedCount, onTap: onPrivacy),
       ),
