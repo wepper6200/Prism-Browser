@@ -1,4 +1,4 @@
-﻿@Tags(['showcase'])
+@Tags(['showcase'])
 library;
 
 import 'package:flutter/foundation.dart';
@@ -46,6 +46,7 @@ class _Screen {
     this.onboarding = false,
     this.tab,
     this.progress = 1,
+    this.search,
   });
 
   final String file;
@@ -54,6 +55,9 @@ class _Screen {
   final bool onboarding;
   final String? tab;
   final double progress;
+
+  /// Opens Prism Search with this query in the active tab.
+  final String? search;
 }
 
 const _screens = [
@@ -78,6 +82,7 @@ const _screens = [
   _Screen('10_privacy', 'Настройки → Приватность', '/settings/privacy'),
   _Screen('11_history', 'История', '/history'),
   _Screen('12_downloads', 'Загрузки', '/downloads'),
+  _Screen('15_prism_search', 'Prism Search', '/', tab: 't6', search: 'призма'),
 ];
 
 Future<ProviderContainer> _container(_Variant v, _Screen s) async {
@@ -92,6 +97,9 @@ Future<ProviderContainer> _container(_Variant v, _Screen s) async {
     progress: s.progress,
   );
   if (s.tab != null) c.read(tabsProvider.notifier).select(s.tab!);
+  if (s.search != null) {
+    c.read(browserActionsProvider).open(s.search!).ignore();
+  }
   return c;
 }
 

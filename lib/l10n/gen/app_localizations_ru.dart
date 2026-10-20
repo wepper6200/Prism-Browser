@@ -869,4 +869,67 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mockNotice => 'Предпросмотр: веб-движок подключается на этапе 3';
+
+  @override
+  String get searchPrismSub => 'Ответы прямо в браузере, без сервера';
+
+  @override
+  String get searchPrismSection => 'Prism Search';
+
+  @override
+  String get searchInstantAnswers => 'Ответы из Википедии';
+
+  @override
+  String get searchInstantAnswersSub =>
+      'Запрос уходит в Википедию только после нажатия «Найти», не во время набора';
+
+  @override
+  String get psCalculator => 'Калькулятор';
+
+  @override
+  String get psCopy => 'Копировать результат';
+
+  @override
+  String get psCopied => 'Скопировано';
+
+  @override
+  String get psWikiAttribution => 'Википедия · текст по лицензии CC BY-SA';
+
+  @override
+  String get psReadMore => 'Читать в Википедии';
+
+  @override
+  String get psMoreWiki => 'Ещё в Википедии';
+
+  @override
+  String get psOnDevice => 'На устройстве';
+
+  @override
+  String get psKindTab => 'Открытая вкладка';
+
+  @override
+  String get psKindBookmark => 'Закладка';
+
+  @override
+  String get psKindHistory => 'История';
+
+  @override
+  String get psSearchWeb => 'Искать в интернете';
+
+  @override
+  String get psWikiError => 'Википедия сейчас недоступна';
+
+  @override
+  String get psLoading => 'Ищем ответ';
+
+  @override
+  String get psNothingTitle => 'Здесь ничего не нашлось';
+
+  @override
+  String get psNothingBody =>
+      'Ни на устройстве, ни в Википедии. Попробуйте поиск в интернете.';
+
+  @override
+  String get psPrivacy =>
+      'Prism Search работает без своего сервера и без ключей. Калькулятор и совпадения с вкладками, закладками и историей считаются на устройстве. Для ответа запрос отправляется только в Википедию. «Искать в интернете» открывает выбранный поисковик в этой вкладке.';
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../domain/engine/browser_engine.dart';
@@ -64,6 +64,7 @@ class _FakeSession implements TabSession {
           progress: url == null ? 1 : _engine.progress,
           canGoBack: url != null,
           blockedCount: url == null ? 0 : _engine.blockedPerPage,
+          historyIndex: url == null ? -1 : 0,
         ),
       );
 
@@ -97,6 +98,7 @@ class _FakeSession implements TabSession {
       canGoBack: _back.isNotEmpty,
       canGoForward: _forward.isNotEmpty,
       blockedCount: _engine.blockedPerPage,
+      historyIndex: _back.length,
     );
   }
 

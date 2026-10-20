@@ -175,7 +175,7 @@ class DesktopChrome extends ConsumerWidget {
                                 ? l.secureConnection
                                 : null,
                             onTap: onOmnibox,
-                            trailing: page.isBlank
+                            trailing: page.isNative
                                 ? null
                                 : ShieldChip(
                                     count: page.blockedCount,

@@ -1639,6 +1639,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preview: the web engine connects in stage 3'**
   String get mockNotice;
+
+  /// No description provided for @searchPrismSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers right in the browser, no server'**
+  String get searchPrismSub;
+
+  /// No description provided for @searchPrismSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Prism Search'**
+  String get searchPrismSection;
+
+  /// No description provided for @searchInstantAnswers.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers from Wikipedia'**
+  String get searchInstantAnswers;
+
+  /// No description provided for @searchInstantAnswersSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The query goes to Wikipedia only after you press Search, never while typing'**
+  String get searchInstantAnswersSub;
+
+  /// No description provided for @psCalculator.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator'**
+  String get psCalculator;
+
+  /// No description provided for @psCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy result'**
+  String get psCopy;
+
+  /// No description provided for @psCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get psCopied;
+
+  /// No description provided for @psWikiAttribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Wikipedia · text under CC BY-SA'**
+  String get psWikiAttribution;
+
+  /// No description provided for @psReadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Read on Wikipedia'**
+  String get psReadMore;
+
+  /// No description provided for @psMoreWiki.
+  ///
+  /// In en, this message translates to:
+  /// **'More on Wikipedia'**
+  String get psMoreWiki;
+
+  /// No description provided for @psOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device'**
+  String get psOnDevice;
+
+  /// No description provided for @psKindTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Open tab'**
+  String get psKindTab;
+
+  /// No description provided for @psKindBookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark'**
+  String get psKindBookmark;
+
+  /// No description provided for @psKindHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get psKindHistory;
+
+  /// No description provided for @psSearchWeb.
+  ///
+  /// In en, this message translates to:
+  /// **'Search the web'**
+  String get psSearchWeb;
+
+  /// No description provided for @psWikiError.
+  ///
+  /// In en, this message translates to:
+  /// **'Wikipedia is unavailable right now'**
+  String get psWikiError;
+
+  /// No description provided for @psLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for an answer'**
+  String get psLoading;
+
+  /// No description provided for @psNothingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found here'**
+  String get psNothingTitle;
+
+  /// No description provided for @psNothingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Not on this device and not on Wikipedia. Try searching the web.'**
+  String get psNothingBody;
+
+  /// No description provided for @psPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Prism Search has no server of its own and needs no keys. The calculator and matches from your tabs, bookmarks and history are computed on the device. For an answer, the query is sent only to Wikipedia. Search the web opens the chosen search engine in this tab.'**
+  String get psPrivacy;
 }
 
 class _AppLocalizationsDelegate

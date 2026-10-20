@@ -1,9 +1,10 @@
-﻿import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prism_browser/application/browser/browser_providers.dart';
 import 'package:prism_browser/application/settings/appearance_controller.dart';
 import 'package:prism_browser/data/engine/fake_engine.dart';
+import 'package:prism_browser/domain/search/prism_search.dart';
 import 'package:prism_browser/domain/settings/appearance.dart';
 import 'package:prism_browser/presentation/app/prism_app.dart';
 import 'package:prism_browser/presentation/app/router.dart';
@@ -11,6 +12,8 @@ import 'package:prism_browser/presentation/gallery/design_gallery_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import 'fake_knowledge.dart';
 
 Future<SharedPreferencesWithCache> freshPrefs() async {
   SharedPreferencesAsyncPlatform.instance =
@@ -31,6 +34,7 @@ Future<ProviderContainer> makeContainer({
   double progress = 1,
   FakeEngine? engine,
   bool demo = true,
+  KnowledgeSource? knowledge,
 }) async {
   final prefs = await freshPrefs();
   final container = ProviderContainer(
@@ -43,6 +47,10 @@ Future<ProviderContainer> makeContainer({
       // Platform views can't run in widget tests: deterministic engine.
       engineProvider.overrideWithValue(
         engine ?? FakeEngine(progress: progress),
+      ),
+      // Prism Search answers come from an offline fake, never Wikipedia.
+      knowledgeSourceProvider.overrideWithValue(
+        knowledge ?? FakeKnowledgeSource(),
       ),
     ],
   );

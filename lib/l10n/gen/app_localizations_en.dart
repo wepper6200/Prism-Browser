@@ -858,4 +858,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mockNotice => 'Preview: the web engine connects in stage 3';
+
+  @override
+  String get searchPrismSub => 'Answers right in the browser, no server';
+
+  @override
+  String get searchPrismSection => 'Prism Search';
+
+  @override
+  String get searchInstantAnswers => 'Answers from Wikipedia';
+
+  @override
+  String get searchInstantAnswersSub =>
+      'The query goes to Wikipedia only after you press Search, never while typing';
+
+  @override
+  String get psCalculator => 'Calculator';
+
+  @override
+  String get psCopy => 'Copy result';
+
+  @override
+  String get psCopied => 'Copied';
+
+  @override
+  String get psWikiAttribution => 'Wikipedia · text under CC BY-SA';
+
+  @override
+  String get psReadMore => 'Read on Wikipedia';
+
+  @override
+  String get psMoreWiki => 'More on Wikipedia';
+
+  @override
+  String get psOnDevice => 'On this device';
+
+  @override
+  String get psKindTab => 'Open tab';
+
+  @override
+  String get psKindBookmark => 'Bookmark';
+
+  @override
+  String get psKindHistory => 'History';
+
+  @override
+  String get psSearchWeb => 'Search the web';
+
+  @override
+  String get psWikiError => 'Wikipedia is unavailable right now';
+
+  @override
+  String get psLoading => 'Looking for an answer';
+
+  @override
+  String get psNothingTitle => 'Nothing found here';
+
+  @override
+  String get psNothingBody =>
+      'Not on this device and not on Wikipedia. Try searching the web.';
+
+  @override
+  String get psPrivacy =>
+      'Prism Search has no server of its own and needs no keys. The calculator and matches from your tabs, bookmarks and history are computed on the device. For an answer, the query is sent only to Wikipedia. Search the web opens the chosen search engine in this tab.';
 }

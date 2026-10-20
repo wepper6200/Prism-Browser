@@ -1,3 +1,4 @@
+import '../search/prism_search.dart';
 import 'punycode.dart';
 
 /// Turns omnibox input into a URL to load: an address when it looks like
@@ -85,6 +86,9 @@ abstract final class UrlResolver {
   /// full URL on desktop (both without trailing slash noise).
   static String display(Uri? url, {required bool full}) {
     if (url == null) return '';
+    // Prism Search shows (and edits) the query, not an internal URL.
+    final query = PrismSearchUri.queryOf(url);
+    if (query != null) return query;
     final host = Punycode.toDisplay(url.host);
     if (!full) {
       return host.startsWith('www.') ? host.substring(4) : host;

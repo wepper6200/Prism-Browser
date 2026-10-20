@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -177,7 +177,14 @@ class InAppTabSession implements TabSession {
     if (c == null) return;
     final back = await c.canGoBack();
     final fwd = await c.canGoForward();
-    _set(_state.value.copyWith(canGoBack: back, canGoForward: fwd));
+    final list = await c.getCopyBackForwardList();
+    _set(
+      _state.value.copyWith(
+        canGoBack: back,
+        canGoForward: fwd,
+        historyIndex: list?.currentIndex ?? -1,
+      ),
+    );
   }
 
   @override
