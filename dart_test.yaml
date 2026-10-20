@@ -1,0 +1,5 @@
+tags:
+  golden:
+    description: Pixel goldens; generated and verified on Windows only.
+  showcase:
+    description: Presentation boards of every screen (docs/showcase), not a regression gate.
