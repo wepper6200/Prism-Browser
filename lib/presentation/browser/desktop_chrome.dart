@@ -24,6 +24,7 @@ class DesktopChrome extends ConsumerWidget {
     required this.onOmnibox,
     required this.onMenu,
     required this.onPrivacy,
+    required this.onBookmark,
   });
 
   /// top pad + tab row + gap + toolbar row + bottom pad.
@@ -33,12 +34,16 @@ class DesktopChrome extends ConsumerWidget {
   final VoidCallback onOmnibox;
   final VoidCallback onMenu;
   final VoidCallback onPrivacy;
+  final VoidCallback onBookmark;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final tabs = ref.watch(tabsProvider);
     final actions = ref.read(browserActionsProvider);
+    final bookmarked = ref.watch(
+      isBookmarkedProvider(page.url?.toString() ?? ''),
+    );
     // Each group of controls is its own island (Glass: floating capsule;
     // Material: undecorated inside the docked bar).
     Widget island(Widget child, {EdgeInsets padding = EdgeInsets.zero}) =>
@@ -122,6 +127,13 @@ class DesktopChrome extends ConsumerWidget {
               height: 52,
               child: Row(
                 children: [
+                  if (page.tab.incognito) ...[
+                    island(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      const IncognitoMark(),
+                    ),
+                    const SizedBox(width: PrismSpace.sm),
+                  ],
                   island(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     Row(
@@ -194,8 +206,11 @@ class DesktopChrome extends ConsumerWidget {
                       children: [
                         PrismIconButton(
                           icon: PrismIcons.star,
-                          tooltip: '${l.actionBookmark} (Ctrl+D)',
-                          onPressed: () {},
+                          selected: bookmarked,
+                          selectedIcon: PrismIcons.starFilled,
+                          tooltip:
+                              '${bookmarked ? l.menuBookmarked : l.actionBookmark} (Ctrl+D)',
+                          onPressed: page.isBlank ? null : onBookmark,
                         ),
                         PrismIconButton(
                           icon: PrismIcons.downloads,

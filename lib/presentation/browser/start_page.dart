@@ -276,13 +276,19 @@ class _ProtectionCard extends ConsumerWidget {
   }
 }
 
-class _IncognitoIntro extends StatelessWidget {
+class _IncognitoIntro extends ConsumerWidget {
   const _IncognitoIntro();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
+    // Android WebView has one cookie jar per app: say so instead of
+    // pretending incognito is fully separate there.
+    final limited = !ref
+        .watch(engineProvider)
+        .capabilities
+        .incognitoWithoutDisk;
     return Column(
       children: [
         const SizedBox(height: PrismSpace.xxl),
@@ -299,6 +305,23 @@ class _IncognitoIntro extends StatelessWidget {
           padding: const EdgeInsets.all(PrismSpace.lg),
           child: Text(l.incognitoBody, style: text.bodyLarge),
         ),
+        if (limited) ...[
+          const SizedBox(height: PrismSpace.md),
+          PrismSurface(
+            kind: PrismSurfaceKind.card,
+            padding: const EdgeInsets.all(PrismSpace.lg),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(PrismIcons.info, size: 20),
+                const SizedBox(width: PrismSpace.md),
+                Expanded(
+                  child: Text(l.incognitoCookiesShared, style: text.bodyMedium),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

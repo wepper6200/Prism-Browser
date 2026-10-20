@@ -1639,6 +1639,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preview: the web engine connects in stage 3'**
   String get mockNotice;
+
+  /// No description provided for @actionMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get actionMore;
+
+  /// No description provided for @actionRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get actionRename;
+
+  /// No description provided for @bookmarksDeleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete folder'**
+  String get bookmarksDeleteFolder;
+
+  /// No description provided for @bookmarksDeleteFolderSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Its bookmarks move to Unsorted'**
+  String get bookmarksDeleteFolderSub;
+
+  /// No description provided for @bookmarksEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit bookmark'**
+  String get bookmarksEdit;
+
+  /// No description provided for @bookmarksFieldFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder'**
+  String get bookmarksFieldFolder;
+
+  /// No description provided for @bookmarksFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get bookmarksFieldTitle;
+
+  /// No description provided for @bookmarksFolderEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is empty'**
+  String get bookmarksFolderEmpty;
+
+  /// No description provided for @bookmarksFolderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder name'**
+  String get bookmarksFolderName;
+
+  /// No description provided for @bookmarksNewFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New folder'**
+  String get bookmarksNewFolder;
+
+  /// No description provided for @downloadCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel download'**
+  String get downloadCancel;
+
+  /// No description provided for @downloadOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the file'**
+  String get downloadOpenFailed;
+
+  /// No description provided for @downloadRemoveFromList.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from list (the file stays)'**
+  String get downloadRemoveFromList;
+
+  /// No description provided for @downloadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading: {name}'**
+  String downloadStarted(Object name);
+
+  /// No description provided for @emptySearchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different search.'**
+  String get emptySearchBody;
+
+  /// No description provided for @emptySearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get emptySearchTitle;
+
+  /// No description provided for @historyRemoveEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from history'**
+  String get historyRemoveEntry;
+
+  /// No description provided for @tabsDeleteGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete group'**
+  String get tabsDeleteGroup;
+
+  /// No description provided for @tabsDeleteGroupSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Its tabs stay open, ungrouped'**
+  String get tabsDeleteGroupSub;
+
+  /// No description provided for @tabsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get tabsGroup;
+
+  /// No description provided for @tabsGroupName.
+  ///
+  /// In en, this message translates to:
+  /// **'Group name'**
+  String get tabsGroupName;
+
+  /// No description provided for @tabsNewGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'New group'**
+  String get tabsNewGroup;
+
+  /// No description provided for @tabsNoGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'No group'**
+  String get tabsNoGroup;
+
+  /// No description provided for @menuBookmarked.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarked'**
+  String get menuBookmarked;
+
+  /// No description provided for @menuBookmarkedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to remove'**
+  String get menuBookmarkedSub;
+
+  /// No description provided for @bookmarkAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to bookmarks'**
+  String get bookmarkAdded;
+
+  /// No description provided for @bookmarkRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from bookmarks'**
+  String get bookmarkRemoved;
+
+  /// No description provided for @incognitoMark.
+  ///
+  /// In en, this message translates to:
+  /// **'Incognito'**
+  String get incognitoMark;
+
+  /// No description provided for @incognitoCookiesShared.
+  ///
+  /// In en, this message translates to:
+  /// **'On Android the web engine (WebView) shares cookies between all tabs of an app. In incognito Prism keeps no history, tabs, cache or downloads list, but sites can see cookies you got in regular tabs.'**
+  String get incognitoCookiesShared;
 }
 
 class _AppLocalizationsDelegate

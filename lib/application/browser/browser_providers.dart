@@ -8,155 +8,22 @@ import '../../domain/browser/models.dart';
 import '../../domain/engine/browser_engine.dart';
 import '../../domain/engine/url_resolver.dart';
 import '../settings/appearance_controller.dart';
+import 'downloads_controller.dart';
+import 'library_providers.dart';
+import 'tabs_controller.dart';
 
-/// Application state. Tabs/library are still backed by [MockData] (drift
-/// in stage 4); pages come from the real engine since stage 3.
+export 'downloads_controller.dart';
+export 'library_providers.dart';
+export 'storage_providers.dart';
+export 'tabs_controller.dart';
+export 'thumbnails.dart';
 
-@immutable
-class TabsState {
-  const TabsState({
-    required this.tabs,
-    required this.incognitoTabs,
-    required this.activeId,
-    required this.groups,
-  });
-
-  final List<BrowserTab> tabs;
-  final List<BrowserTab> incognitoTabs;
-  final String activeId;
-  final List<TabGroup> groups;
-
-  BrowserTab get active => [
-    ...tabs,
-    ...incognitoTabs,
-  ].firstWhere((t) => t.id == activeId, orElse: () => tabs.first);
-
-  TabsState copyWith({
-    List<BrowserTab>? tabs,
-    List<BrowserTab>? incognitoTabs,
-    String? activeId,
-  }) => TabsState(
-    tabs: tabs ?? this.tabs,
-    incognitoTabs: incognitoTabs ?? this.incognitoTabs,
-    activeId: activeId ?? this.activeId,
-    groups: groups,
-  );
-}
+/// Browser application state: engine sessions and navigation here; tabs,
+/// library and downloads in the exported files (persisted with drift).
 
 /// Demo fixtures (stage-2 mocks) for tests and showcase boards. Off in the
 /// app: a clean install starts empty and offline.
 final demoDataProvider = Provider<bool>((ref) => false);
-
-final tabsProvider = NotifierProvider<TabsController, TabsState>(
-  TabsController.new,
-);
-
-class TabsController extends Notifier<TabsState> {
-  int _seq = 100;
-
-  @override
-  TabsState build() {
-    if (ref.watch(demoDataProvider)) {
-      return const TabsState(
-        tabs: MockData.tabs,
-        incognitoTabs: MockData.incognitoTabs,
-        activeId: 't1',
-        groups: MockData.groups,
-      );
-    }
-    // Clean start: one native start page, no engine navigation, no
-    // network. Session restore arrives with persistence (stage 4).
-    return const TabsState(
-      tabs: [BrowserTab(id: 'n0', title: '', url: '')],
-      incognitoTabs: [],
-      activeId: 'n0',
-      groups: [],
-    );
-  }
-
-  void select(String id) => state = state.copyWith(activeId: id);
-
-  String newTab({bool incognito = false}) {
-    final id = 'n${_seq++}';
-    final tab = BrowserTab(id: id, title: '', url: '', incognito: incognito);
-    state = incognito
-        ? state.copyWith(
-            incognitoTabs: [...state.incognitoTabs, tab],
-            activeId: id,
-          )
-        : state.copyWith(tabs: [...state.tabs, tab], activeId: id);
-    return id;
-  }
-
-  void close(String id) {
-    ref.invalidate(sessionProvider(id));
-    final tabs = state.tabs.where((t) => t.id != id).toList();
-    final inc = state.incognitoTabs.where((t) => t.id != id).toList();
-    var active = state.activeId;
-    if (active == id) {
-      active = tabs.isNotEmpty
-          ? tabs.last.id
-          : (inc.isNotEmpty ? inc.last.id : '');
-    }
-    if (tabs.isEmpty && inc.isEmpty) {
-      final fresh = BrowserTab(id: 'n${_seq++}', title: '', url: '');
-      state = state.copyWith(
-        tabs: [fresh],
-        incognitoTabs: [],
-        activeId: fresh.id,
-      );
-      return;
-    }
-    state = state.copyWith(tabs: tabs, incognitoTabs: inc, activeId: active);
-  }
-
-  void togglePin(String id) => state = state.copyWith(
-    tabs: [
-      for (final t in state.tabs)
-        t.id == id ? t.copyWith(pinned: !t.pinned) : t,
-    ],
-  );
-
-  void duplicate(String id) {
-    final src = state.tabs.firstWhere((t) => t.id == id);
-    final copy = BrowserTab(
-      id: 'n${_seq++}',
-      title: src.title,
-      url: src.url,
-      groupId: src.groupId,
-    );
-    final i = state.tabs.indexOf(src);
-    state = state.copyWith(
-      tabs: [...state.tabs]..insert(i + 1, copy),
-      activeId: copy.id,
-    );
-  }
-
-  void clearIncognito() {
-    final tabs = state.tabs;
-    for (final t in state.incognitoTabs) {
-      ref.invalidate(sessionProvider(t.id));
-    }
-    state = state.copyWith(
-      incognitoTabs: [],
-      activeId: state.active.incognito ? tabs.last.id : state.activeId,
-    );
-  }
-
-  /// Engine reported a new title / URL for a tab.
-  void updateMeta(String id, {required String title, String? url}) {
-    BrowserTab upd(BrowserTab t) =>
-        t.id == id && (t.title != title || (url != null && t.url != url))
-        ? t.copyWith(title: title, url: url)
-        : t;
-    final tabs = state.tabs.map(upd).toList();
-    final inc = state.incognitoTabs.map(upd).toList();
-    if (!listEquals(tabs, state.tabs) ||
-        !listEquals(inc, state.incognitoTabs)) {
-      state = state.copyWith(tabs: tabs, incognitoTabs: inc);
-    }
-  }
-}
 
 enum PageSecurity { secure, insecure, internal }
 
@@ -209,12 +76,15 @@ class SessionStateNotifier extends Notifier<TabSessionState> {
   @override
   TabSessionState build() {
     final session = ref.watch(sessionProvider(tabId));
+    final recorder = ref.read(historyRecorderProvider);
     void listener() {
       final v = session.state.value;
       state = v;
       ref
           .read(tabsProvider.notifier)
-          .updateMeta(tabId, title: v.title, url: v.url?.toString());
+          // A blank session is a start page: '' (never a stale URL).
+          .updateMeta(tabId, title: v.title, url: v.url?.toString() ?? '');
+      recorder.observe(tabId, incognito: session.incognito, s: v);
     }
 
     session.state.addListener(listener);
@@ -283,44 +153,13 @@ class BrowserActions {
   Future<void> stop() => _active.stopLoading();
 }
 
-final bookmarksProvider = Provider<List<Bookmark>>(
-  (ref) => ref.watch(demoDataProvider) ? MockData.bookmarks : const [],
-);
-final bookmarkFoldersProvider = Provider<List<BookmarkFolder>>(
-  (ref) => ref.watch(demoDataProvider) ? MockData.folders : const [],
-);
-
 /// Injectable clock so tests and showcase boards render stable times.
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
-
-final historyProvider = Provider<List<HistoryEntry>>(
-  (ref) => ref.watch(demoDataProvider)
-      ? MockData.history(ref.watch(clockProvider)())
-      : const [],
-);
 
 final downloadsProvider =
     NotifierProvider<DownloadsController, List<DownloadItem>>(
       DownloadsController.new,
     );
-
-class DownloadsController extends Notifier<List<DownloadItem>> {
-  @override
-  List<DownloadItem> build() =>
-      ref.watch(demoDataProvider) ? MockData.downloads : const [];
-
-  void toggle(String id) => state = [
-    for (final d in state)
-      if (d.id != id)
-        d
-      else
-        d.copyWith(
-          state: d.state == DownloadState.running
-              ? DownloadState.paused
-              : DownloadState.running,
-        ),
-  ];
-}
 
 final searchEngineProvider =
     NotifierProvider<SearchEngineController, SearchEngineId>(
@@ -433,46 +272,3 @@ class PrivacyController extends Notifier<PrivacySettings> {
 final sitePermissionsProvider = Provider<List<SitePermission>>(
   (ref) => ref.watch(demoDataProvider) ? MockData.permissions : const [],
 );
-
-/// Omnibox suggestions from history, bookmarks and (mock) search engine.
-@immutable
-class OmniboxSuggestion {
-  const OmniboxSuggestion({required this.kind, required this.title, this.url});
-
-  final SuggestionKind kind;
-  final String title;
-  final String? url;
-}
-
-enum SuggestionKind { search, history, bookmark }
-
-final omniboxSuggestionsProvider =
-    Provider.family<List<OmniboxSuggestion>, String>((ref, query) {
-      final q = query.trim().toLowerCase();
-      if (q.isEmpty) return const [];
-      bool hit(String s) => s.toLowerCase().contains(q);
-      return [
-        // Search suggestions only after the user typed something.
-        for (final s in MockData.searchSuggestions.where(hit).take(3))
-          OmniboxSuggestion(kind: SuggestionKind.search, title: s),
-        for (final b
-            in ref
-                .watch(bookmarksProvider)
-                .where((b) => hit(b.title) || hit(b.url)))
-          OmniboxSuggestion(
-            kind: SuggestionKind.bookmark,
-            title: b.title,
-            url: b.url,
-          ),
-        for (final h
-            in ref
-                .watch(historyProvider)
-                .where((h) => hit(h.title) || hit(h.url))
-                .take(3))
-          OmniboxSuggestion(
-            kind: SuggestionKind.history,
-            title: h.title,
-            url: h.url,
-          ),
-      ];
-    });

@@ -18,7 +18,7 @@ class DownloadsScreen extends ConsumerWidget {
   static IconData _fileIcon(String name) {
     final ext = name.split('.').last.toLowerCase();
     return switch (ext) {
-      'png' || 'jpg' || 'jpeg' || 'webp' => PrismIcons.fileImage,
+      'png' || 'jpg' || 'jpeg' || 'webp' || 'gif' => PrismIcons.fileImage,
       'zip' || '7z' || 'rar' => PrismIcons.fileZip,
       'pdf' => PrismIcons.pdf,
       'xlsx' || 'csv' => PrismIcons.fileSheet,
@@ -33,6 +33,22 @@ class DownloadsScreen extends ConsumerWidget {
     final t = PrismTokens.of(context);
     final items = ref.watch(downloadsProvider);
     final c = ref.read(downloadsProvider.notifier);
+
+    String progress(DownloadItem d) => d.sizeKnown
+        ? l.downloadProgress(
+            formatBytes(l, d.receivedBytes),
+            formatBytes(l, d.totalBytes),
+          )
+        : formatBytes(l, d.receivedBytes);
+
+    Future<void> open(DownloadItem d) async {
+      final ok = await c.open(d.id);
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.maybeOf(context)
+            ?.showSnackBar(SnackBar(content: Text(l.downloadOpenFailed)));
+      }
+    }
+
     return PrismPage(
       title: l.downloadsTitle,
       children: [
@@ -47,6 +63,7 @@ class DownloadsScreen extends ConsumerWidget {
             children: [
               for (final d in items)
                 PrismTile(
+                  key: ValueKey(d.id),
                   icon: _fileIcon(d.fileName),
                   tone: switch (d.state) {
                     DownloadState.failed => PrismBadgeTone.danger,
@@ -54,52 +71,73 @@ class DownloadsScreen extends ConsumerWidget {
                     _ => PrismBadgeTone.accent,
                   },
                   title: d.fileName,
-                  subtitle: switch (d.state) {
-                    DownloadState.completed =>
-                      '${l.downloadDone} · ${formatBytes(l, d.totalBytes)}',
-                    DownloadState.failed => l.downloadFailed,
-                    DownloadState.paused =>
-                      '${l.downloadPaused} · ${l.downloadProgress(formatBytes(l, d.receivedBytes), formatBytes(l, d.totalBytes))}',
-                    DownloadState.running => l.downloadProgress(
-                      formatBytes(l, d.receivedBytes),
-                      formatBytes(l, d.totalBytes),
-                    ),
-                  },
-                  trailing: switch (d.state) {
-                    DownloadState.running || DownloadState.paused => SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            value: d.progress,
-                            strokeWidth: 3,
-                            backgroundColor: t.outline,
+                  subtitle: [
+                    switch (d.state) {
+                      DownloadState.completed =>
+                        '${l.downloadDone} · ${formatBytes(l, d.receivedBytes)}',
+                      DownloadState.failed => l.downloadFailed,
+                      DownloadState.paused =>
+                        '${l.downloadPaused} · ${progress(d)}',
+                      DownloadState.running => progress(d),
+                    },
+                    if (d.incognito) l.tabsIncognito,
+                  ].join(' · '),
+                  onTap: d.state == DownloadState.completed
+                      ? () => open(d)
+                      : null,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      switch (d.state) {
+                        DownloadState.running ||
+                        DownloadState.paused => SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                // Unknown size: indeterminate while running.
+                                value:
+                                    d.progress ??
+                                    (d.state == DownloadState.paused
+                                        ? 0
+                                        : null),
+                                strokeWidth: 3,
+                                backgroundColor: t.outline,
+                              ),
+                              PrismIconButton(
+                                icon: d.state == DownloadState.running
+                                    ? PrismIcons.pause
+                                    : PrismIcons.play,
+                                tooltip: d.state == DownloadState.running
+                                    ? l.actionPause
+                                    : l.actionResume,
+                                onPressed: () => c.toggle(d.id),
+                              ),
+                            ],
                           ),
-                          PrismIconButton(
-                            icon: d.state == DownloadState.running
-                                ? PrismIcons.pause
-                                : PrismIcons.play,
-                            tooltip: d.state == DownloadState.running
-                                ? l.actionPause
-                                : l.actionResume,
-                            onPressed: () => c.toggle(d.id),
-                          ),
-                        ],
+                        ),
+                        DownloadState.completed => PrismIconButton(
+                          icon: PrismIcons.external,
+                          tooltip: l.actionOpenFile,
+                          onPressed: () => open(d),
+                        ),
+                        DownloadState.failed => PrismIconButton(
+                          icon: PrismIcons.undo,
+                          tooltip: l.actionRetry,
+                          onPressed: () => c.resume(d.id).ignore(),
+                        ),
+                      },
+                      PrismIconButton(
+                        icon: PrismIcons.close,
+                        tooltip: d.state == DownloadState.completed
+                            ? l.downloadRemoveFromList
+                            : l.downloadCancel,
+                        onPressed: () => c.remove(d.id).ignore(),
                       ),
-                    ),
-                    DownloadState.completed => PrismIconButton(
-                      icon: PrismIcons.external,
-                      tooltip: l.actionOpenFile,
-                      onPressed: () {},
-                    ),
-                    DownloadState.failed => PrismIconButton(
-                      icon: PrismIcons.undo,
-                      tooltip: l.actionRetry,
-                      onPressed: () {},
-                    ),
-                  },
+                    ],
+                  ),
                 ),
             ],
           ),

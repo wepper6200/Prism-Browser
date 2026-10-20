@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -40,6 +42,20 @@ class _OmniboxPanelState extends ConsumerState<OmniboxPanel> {
 
   final _focus = FocusNode(debugLabel: 'omnibox');
 
+  /// The query engine suggestions are asked for: settles 250 ms after the
+  /// last keystroke, so typing a word sends one request, not one per key.
+  String _remoteQuery = '';
+  Timer? _debounce;
+
+  void _onChanged(String _) {
+    setState(() {});
+    _debounce?.cancel();
+    final q = _controller.text;
+    _debounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() => _remoteQuery = q);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +73,7 @@ class _OmniboxPanelState extends ConsumerState<OmniboxPanel> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _focus.dispose();
     _controller.dispose();
     super.dispose();
@@ -69,7 +86,16 @@ class _OmniboxPanelState extends ConsumerState<OmniboxPanel> {
     final text = Theme.of(context).textTheme;
     final query = _controller.text;
     final engine = ref.watch(activeSearchEngineProvider);
-    final suggestions = ref.watch(omniboxSuggestionsProvider(query));
+    final typed =
+        query.trim().isNotEmpty && !UrlResolver.looksLikeAddress(query);
+    // Engine suggestions only for searches, never for addresses.
+    final remote = typed && _remoteQuery == query
+        ? ref.watch(remoteSuggestionsProvider(_remoteQuery)).value ?? const []
+        : const <OmniboxSuggestion>[];
+    final suggestions = <OmniboxSuggestion>[
+      ...remote.take(4),
+      ...?ref.watch(localSuggestionsProvider(query)).value,
+    ];
     final top = MediaQuery.paddingOf(context).top;
 
     return Stack(
@@ -116,15 +142,17 @@ class _OmniboxPanelState extends ConsumerState<OmniboxPanel> {
                                 hint: l.omniboxHint,
                                 leading: PrismIcons.globe,
                                 keyboardType: TextInputType.url,
-                                onChanged: (_) => setState(() {}),
+                                onChanged: _onChanged,
                                 onSubmitted: widget.onSubmit,
                                 trailing: query.isEmpty
                                     ? null
                                     : PrismIconButton(
                                         icon: PrismIcons.close,
                                         tooltip: l.actionClearQuery,
-                                        onPressed: () =>
-                                            setState(_controller.clear),
+                                        onPressed: () => setState(() {
+                                          _controller.clear();
+                                          _remoteQuery = '';
+                                        }),
                                       ),
                               ),
                             ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../application/browser/browser_providers.dart';
@@ -13,18 +13,11 @@ import '../common/prism_page.dart';
 import '../common/site_visuals.dart';
 import 'custom_search_sheet.dart';
 
-class SearchEngineScreen extends ConsumerStatefulWidget {
+class SearchEngineScreen extends ConsumerWidget {
   const SearchEngineScreen({super.key});
 
   @override
-  ConsumerState<SearchEngineScreen> createState() => _SearchEngineScreenState();
-}
-
-class _SearchEngineScreenState extends ConsumerState<SearchEngineScreen> {
-  bool _suggestions = true;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     return PrismPage(
       title: l.settingsSearch,
@@ -36,8 +29,10 @@ class _SearchEngineScreenState extends ConsumerState<SearchEngineScreen> {
               icon: PrismIcons.lightning,
               title: l.searchSuggestions,
               subtitle: l.searchSuggestionsSub,
-              value: _suggestions,
-              onChanged: (v) => setState(() => _suggestions = v),
+              value: ref.watch(searchSuggestionsEnabledProvider),
+              onChanged: ref
+                  .read(searchSuggestionsEnabledProvider.notifier)
+                  .set,
             ),
           ],
         ),

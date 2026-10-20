@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -16,6 +16,8 @@ abstract class InAppWebViewEngine implements BrowserEngine {
   InAppWebViewSettings settings({required bool incognito}) =>
       InAppWebViewSettings(
         incognito: incognito,
+        // Downloads are handed to Prism (onDownloadStarting).
+        useOnDownloadStart: true,
         // Third-party cookies off by default (privacy profile, stage 5).
         thirdPartyCookiesEnabled: false,
         // Safe Browsing sends lookups to Google: off (no third-party calls
@@ -37,6 +39,25 @@ abstract class InAppWebViewEngine implements BrowserEngine {
       );
 
   WebViewEnvironment? get environment => null;
+
+  final _downloads = StreamController<DownloadRequest>.broadcast();
+
+  @override
+  Stream<DownloadRequest> get downloadRequests => _downloads.stream;
+
+  @override
+  Future<String?> cookieHeader(Uri url, {required bool incognito}) async {
+    if (incognito) return null;
+    try {
+      final cookies = await CookieManager.instance(
+        webViewEnvironment: environment,
+      ).getCookies(url: WebUri.uri(url));
+      if (cookies.isEmpty) return null;
+      return cookies.map((c) => '${c.name}=${c.value}').join('; ');
+    } on Object {
+      return null;
+    }
+  }
 
   @override
   TabSession createSession({
@@ -87,6 +108,15 @@ class AndroidEngine extends InAppWebViewEngine {
   @override
   InAppWebViewSettings settings({required bool incognito}) =>
       super.settings(incognito: incognito)
+        // NOT the plugin's incognito flag on Android: it calls
+        // CookieManager.removeAllCookies(), which would sign the user out
+        // of every regular tab. WebView has one cookie jar per app (no
+        // Profile API in the plugin), so incognito here means: no cache,
+        // no history/session/downloads list on disk. See DECISIONES.md.
+        ..incognito = false
+        ..cacheMode = incognito
+            ? CacheMode.LOAD_NO_CACHE
+            : CacheMode.LOAD_DEFAULT
         ..useHybridComposition = hybridComposition
         ..algorithmicDarkeningAllowed = false;
 }
@@ -115,8 +145,9 @@ class WindowsEngine extends InAppWebViewEngine {
     desktopMode: true,
     findInPage: true,
     printToPdf: true,
-    // WebView2 InPrivate exists; plugin support verified in stage 4.
-    incognitoWithoutDisk: false,
+    // Controller option IsInPrivateModeEnabled (plugin: settings.incognito):
+    // separate in-memory profile, nothing written to disk.
+    incognitoWithoutDisk: true,
   );
 
   @override
@@ -148,7 +179,13 @@ class InAppTabSession implements TabSession {
     String? initialTitle,
   }) : _pending = initialUrl,
        _state = ValueNotifier(
-         TabSessionState(url: initialUrl, title: initialTitle ?? ''),
+         // A restored tab is pending its load: not "finished" (history
+         // records visits only when a load completes).
+         TabSessionState(
+           url: initialUrl,
+           title: initialTitle ?? '',
+           progress: initialUrl == null ? 1 : 0.05,
+         ),
        );
 
   final InAppWebViewEngine engine;
@@ -168,8 +205,40 @@ class InAppTabSession implements TabSession {
   @override
   ValueListenable<TabSessionState> get state => _state;
 
+  /// URLs that turned out to be downloads: never shown as the page URL
+  /// (WebView may still report them), so they are not saved in the session
+  /// and do not download again when the tab is restored.
+  final _downloadUrls = <String>{};
+
+  /// The last two pages that finished loading (to step back from a
+  /// download URL that was reported as loaded before it became a download).
+  Uri? _committed;
+  Uri? _committedBefore;
+
   void _set(TabSessionState s) {
+    final url = s.url;
+    if (url != null && _downloadUrls.contains(url.toString())) {
+      final back = _committed;
+      s = back == null
+          ? const TabSessionState()
+          : s.copyWith(url: back, progress: 1, clearError: true);
+    } else if (url != null &&
+        !s.loading &&
+        s.error == null &&
+        url != _committed) {
+      _committedBefore = _committed;
+      _committed = url;
+    }
     if (s != _state.value) _state.value = s;
+  }
+
+  void _markDownload(Uri url) {
+    _downloadUrls.add(url.toString());
+    if (_committed == url) {
+      _committed = _committedBefore;
+      _committedBefore = null;
+    }
+    _set(_state.value.copyWith(progress: 1));
   }
 
   Future<void> _syncHistory() async {
@@ -249,6 +318,29 @@ class InAppTabSession implements TabSession {
       onLoadStop: (c, url) async {
         _set(_state.value.copyWith(url: url?.uriValue, progress: 1));
         await _syncHistory();
+      },
+      onDownloadStarting: (c, request) {
+        // The navigation became a download: the page did not change, so
+        // show its URL again (or the start page) and stop the progress bar.
+        _markDownload(request.url);
+        unawaited(_syncHistory());
+        engine._downloads.add(
+          DownloadRequest(
+            url: request.url,
+            incognito: incognito,
+            contentDisposition: request.contentDisposition,
+            mimeType: request.mimeType,
+            contentLength: request.contentLength,
+            // Windows: the plugin fills this from Content-Disposition.
+            suggestedFileName: request.suggestedFilename,
+            userAgent: request.userAgent,
+          ),
+        );
+        // Windows: stop WebView2's own download (Prism downloads it).
+        return DownloadStartResponse(
+          handled: true,
+          action: DownloadStartResponseAction.CANCEL,
+        );
       },
       onReceivedError: (c, request, error) {
         if (request.isForMainFrame ?? true) {

@@ -1,4 +1,4 @@
-﻿name: prism_browser
+name: prism_browser
 description: "Prism Browser - fast, private, beautiful"
 publish_to: 'none'
 
@@ -23,6 +23,8 @@ dependencies:
   go_router: 18.0.2
   flutter_inappwebview: 6.2.0-beta.3
   path_provider: ^2.1.6
+  drift: ^2.35.2
+  drift_flutter: ^0.3.1
 
 dev_dependencies:
   flutter_test:
@@ -34,6 +36,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   shared_preferences_platform_interface: ^2.4.2
+  drift_dev: ^2.35.1
+  build_runner: ^2.16.2
 
 flutter:
   uses-material-design: true

@@ -104,6 +104,7 @@ abstract final class PrismIcons {
   static const IconData barBottom = IconData(0xe05c, fontFamily: _r);
   static const IconData density = IconData(0xe5a2, fontFamily: _r);
   static const IconData star = IconData(0xe46a, fontFamily: _r);
+  static const IconData starFilled = IconData(0xe46a, fontFamily: _f);
   static const IconData external = IconData(0xe5de, fontFamily: _r);
   static const IconData chevronDown = IconData(0xe136, fontFamily: _r);
   static const IconData lightning = IconData(0xe2de, fontFamily: _r);

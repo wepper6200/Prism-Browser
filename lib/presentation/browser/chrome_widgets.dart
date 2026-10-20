@@ -113,3 +113,30 @@ class ShieldChip extends StatelessWidget {
     );
   }
 }
+
+/// Always-visible incognito marker in the chrome (the start page and tab
+/// switcher say it too, but a site page must not look like a regular one).
+class IncognitoMark extends StatelessWidget {
+  const IncognitoMark({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final t = PrismTokens.of(context);
+    return Tooltip(
+      message: l.incognitoMark,
+      child: ExcludeSemantics(
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: t.onSurface.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(PrismIcons.incognito, size: 22, color: t.onSurface),
+        ),
+      ),
+    );
+  }
+}

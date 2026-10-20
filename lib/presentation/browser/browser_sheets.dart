@@ -47,6 +47,10 @@ class _BrowserMenuState extends ConsumerState<BrowserMenu> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
+    final page = ref.watch(pageStateProvider);
+    final bookmarked = ref.watch(
+      isBookmarkedProvider(page.url?.toString() ?? ''),
+    );
     final quick = [
       (PrismIcons.add, l.actionNewTab, MenuAction.newTab),
       (PrismIcons.incognito, l.menuNewIncognito, MenuAction.newIncognito),
@@ -97,6 +101,15 @@ class _BrowserMenuState extends ConsumerState<BrowserMenu> {
           const SizedBox(height: PrismSpace.md),
           PrismSection(
             children: [
+              if (!page.isBlank)
+                PrismTile(
+                  icon: bookmarked
+                      ? PrismIcons.bookmarkFilled
+                      : PrismIcons.bookmark,
+                  title: bookmarked ? l.menuBookmarked : l.actionBookmark,
+                  subtitle: bookmarked ? l.menuBookmarkedSub : null,
+                  onTap: () => widget.onAction(MenuAction.bookmark),
+                ),
               PrismSwitchTile(
                 icon: PrismIcons.reader,
                 title: l.menuReader,

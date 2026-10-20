@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../application/browser/browser_providers.dart';
@@ -14,8 +15,6 @@ import '../common/prism_page.dart';
 import '../common/site_visuals.dart';
 import 'library_format.dart';
 
-enum ClearRange { hour, day, week, all }
-
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
@@ -28,8 +27,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Future<void> _clear() async {
     final l = AppLocalizations.of(context);
-    var range = ClearRange.day;
-    await showPrismSheet<void>(
+    var range = ClearRange.hour;
+    final confirmed = await showPrismSheet<bool>(
       context,
       title: l.historyClear,
       builder: (ctx) => StatefulBuilder(
@@ -64,30 +63,34 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               icon: PrismIcons.delete,
               variant: PrismButtonVariant.danger,
               expand: true,
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () => Navigator.of(ctx).pop(true),
             ),
             const SizedBox(height: PrismSpace.sm),
             PrismButton(
               label: l.actionCancel,
               variant: PrismButtonVariant.ghost,
               expand: true,
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () => Navigator.of(ctx).pop(false),
             ),
           ],
         ),
       ),
     );
+    if (confirmed ?? false) {
+      await ref.read(historyActionsProvider).clear(range);
+    }
+  }
+
+  void _open(HistoryEntry h) {
+    ref.read(browserActionsProvider).open(h.url).ignore();
+    context.go('/');
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final now = ref.watch(clockProvider)();
-    bool hit(String s) => s.toLowerCase().contains(_q.toLowerCase());
-    final entries = ref
-        .watch(historyProvider)
-        .where((h) => hit(h.title) || hit(h.url))
-        .toList();
+    final entries = ref.watch(historyQueryProvider(_q)).value ?? const [];
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final groups = <String, List<HistoryEntry>>{};
@@ -113,27 +116,40 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         onChanged: (v) => setState(() => _q = v),
       ),
       children: [
-        if (groups.isEmpty && _q.isEmpty)
-          PrismEmptyState(
-            icon: PrismIcons.history,
-            title: l.emptyHistoryTitle,
-            body: l.emptyHistoryBody,
-          ),
+        if (groups.isEmpty)
+          _q.isEmpty
+              ? PrismEmptyState(
+                  icon: PrismIcons.history,
+                  title: l.emptyHistoryTitle,
+                  body: l.emptyHistoryBody,
+                )
+              : PrismEmptyState(
+                  icon: PrismIcons.search,
+                  title: l.emptySearchTitle,
+                  body: l.emptySearchBody,
+                ),
         for (final MapEntry(key: title, value: items) in groups.entries)
           PrismSection(
             title: title,
             children: [
               for (final h in items)
                 PrismTile(
+                  key: ValueKey(h.id),
                   leading: LetterFavicon(
-                    label: h.title,
+                    label: h.title.isEmpty ? hostOf(h.url) : h.title,
                     host: hostOf(h.url),
                     size: 40,
                   ),
-                  title: h.title,
+                  title: h.title.isEmpty ? hostOf(h.url) : h.title,
                   subtitle:
                       '${hostOf(h.url)} · ${title == l.historyEarlier ? formatDay(l, h.visitedAt) : formatTime(l, h.visitedAt)}',
-                  onTap: () {},
+                  onTap: () => _open(h),
+                  trailing: PrismIconButton(
+                    icon: PrismIcons.close,
+                    tooltip: l.historyRemoveEntry,
+                    onPressed: () =>
+                        ref.read(historyActionsProvider).delete(h.id),
+                  ),
                 ),
             ],
           ),

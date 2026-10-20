@@ -54,6 +54,7 @@ class BrowserTab {
     String? url,
     bool? pinned,
     String? groupId,
+    bool clearGroup = false,
     bool? loaded,
   }) => BrowserTab(
     id: id,
@@ -61,7 +62,7 @@ class BrowserTab {
     url: url ?? this.url,
     pinned: pinned ?? this.pinned,
     incognito: incognito,
-    groupId: groupId ?? this.groupId,
+    groupId: clearGroup ? null : (groupId ?? this.groupId),
     loaded: loaded ?? this.loaded,
   );
 }
@@ -116,24 +117,56 @@ class DownloadItem {
     required this.totalBytes,
     required this.receivedBytes,
     required this.state,
+    this.filePath = '',
+    this.contentUri,
+    this.mimeType,
+    this.createdAt,
+    this.incognito = false,
   });
 
   final String id;
   final String fileName;
   final String url;
+
+  /// -1 when the server did not say.
   final int totalBytes;
   final int receivedBytes;
   final DownloadState state;
 
-  double get progress => totalBytes <= 0 ? 0 : receivedBytes / totalBytes;
+  /// Where the file is written.
+  final String filePath;
 
-  DownloadItem copyWith({DownloadState? state}) => DownloadItem(
+  /// Android: content:// URI of the file in the public Downloads folder.
+  final String? contentUri;
+  final String? mimeType;
+  final DateTime? createdAt;
+
+  /// Started from an incognito tab: listed only until the app closes.
+  final bool incognito;
+
+  bool get sizeKnown => totalBytes > 0;
+  double? get progress =>
+      sizeKnown ? (receivedBytes / totalBytes).clamp(0.0, 1.0) : null;
+
+  DownloadItem copyWith({
+    DownloadState? state,
+    int? totalBytes,
+    int? receivedBytes,
+    String? filePath,
+    String? fileName,
+    String? contentUri,
+  }) => DownloadItem(
     id: id,
-    fileName: fileName,
+    fileName: fileName ?? this.fileName,
     url: url,
-    totalBytes: totalBytes,
-    receivedBytes: receivedBytes,
+    totalBytes: totalBytes ?? this.totalBytes,
+    receivedBytes: receivedBytes ?? this.receivedBytes,
     state: state ?? this.state,
+    filePath: filePath ?? this.filePath,
+    contentUri: contentUri ?? this.contentUri,
+    mimeType: mimeType,
+    createdAt: createdAt,
+    incognito: incognito,
   );
 }
 

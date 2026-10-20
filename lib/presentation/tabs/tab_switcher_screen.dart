@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -14,6 +14,7 @@ import '../../core/design/prism_icons.dart';
 import '../../core/design/tokens.dart';
 import '../../domain/browser/models.dart';
 import '../../l10n/gen/app_localizations.dart';
+import '../common/prompt_text.dart';
 import '../common/site_visuals.dart';
 
 /// Grid tab switcher. Swipe a card sideways to close it; long-press for
@@ -61,6 +62,22 @@ class _TabSwitcherScreenState extends ConsumerState<TabSwitcherScreen> {
               Navigator.of(ctx).pop();
             },
           ),
+          if (!tab.incognito)
+            PrismTile(
+              icon: PrismIcons.layers,
+              title: l.tabsGroup,
+              subtitle: ref
+                  .read(tabsProvider)
+                  .groups
+                  .where((g) => g.id == tab.groupId)
+                  .firstOrNull
+                  ?.name,
+              chevron: true,
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _pickGroup(tab);
+              },
+            ),
           PrismTile(
             icon: PrismIcons.close,
             tone: PrismBadgeTone.danger,
@@ -73,6 +90,126 @@ class _TabSwitcherScreenState extends ConsumerState<TabSwitcherScreen> {
         ],
       ),
     );
+  }
+
+  /// Group colors, cycled for new groups (the user can't mistype a color).
+  static const _groupColors = [
+    0xFF38BDF8,
+    0xFFF472B6,
+    0xFF34D399,
+    0xFFFBBF24,
+    0xFFA78BFA,
+    0xFFFB7185,
+  ];
+
+  Future<String?> _createGroup({String? withTab}) async {
+    final l = AppLocalizations.of(context);
+    final name = await promptText(
+      context,
+      title: l.tabsNewGroup,
+      label: l.tabsGroupName,
+      action: l.actionSave,
+    );
+    if (name == null || name.trim().isEmpty) return null;
+    final n = ref.read(tabsProvider).groups.length;
+    return ref
+        .read(tabsProvider.notifier)
+        .createGroup(
+          name,
+          _groupColors[n % _groupColors.length],
+          withTab: withTab,
+        );
+  }
+
+  Future<void> _pickGroup(BrowserTab tab) async {
+    final l = AppLocalizations.of(context);
+    final groups = ref.read(tabsProvider).groups;
+    final picked = await showPrismSheet<String>(
+      context,
+      title: l.tabsGroup,
+      builder: (ctx) => PrismSection(
+        children: [
+          for (final (id, name, color) in [
+            ('', l.tabsNoGroup, null),
+            for (final g in groups) (g.id, g.name, g.color),
+          ])
+            Semantics(
+              selected: (tab.groupId ?? '') == id,
+              inMutuallyExclusiveGroup: true,
+              child: PrismTile(
+                leading: color == null ? null : _GroupDot(color: Color(color)),
+                icon: color == null ? PrismIcons.minus : null,
+                tone: PrismBadgeTone.neutral,
+                title: name,
+                onTap: () => Navigator.of(ctx).pop(id),
+                trailing: (tab.groupId ?? '') == id
+                    ? const Icon(PrismIcons.check, size: 22)
+                    : const SizedBox(width: 22),
+              ),
+            ),
+          PrismTile(
+            icon: PrismIcons.add,
+            title: l.tabsNewGroup,
+            onTap: () => Navigator.of(ctx).pop('+'),
+          ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    if (picked == '+') {
+      await _createGroup(withTab: tab.id);
+    } else {
+      ref
+          .read(tabsProvider.notifier)
+          .setGroup(tab.id, picked.isEmpty ? null : picked);
+    }
+  }
+
+  Future<void> _groupMenu(TabGroup g) async {
+    final l = AppLocalizations.of(context);
+    final choice = await showPrismSheet<String>(
+      context,
+      title: g.name,
+      builder: (ctx) => PrismSection(
+        children: [
+          PrismTile(
+            icon: PrismIcons.appearance,
+            title: l.actionRename,
+            onTap: () => Navigator.of(ctx).pop('rename'),
+          ),
+          PrismTile(
+            icon: PrismIcons.delete,
+            tone: PrismBadgeTone.danger,
+            title: l.tabsDeleteGroup,
+            subtitle: l.tabsDeleteGroupSub,
+            onTap: () => Navigator.of(ctx).pop('delete'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    final c = ref.read(tabsProvider.notifier);
+    if (choice == 'rename') {
+      final name = await promptText(
+        context,
+        title: l.actionRename,
+        label: l.tabsGroupName,
+        initial: g.name,
+        action: l.actionSave,
+      );
+      if (name != null && name.trim().isNotEmpty) c.renameGroup(g.id, name);
+    } else if (choice == 'delete') {
+      c.deleteGroup(g.id);
+      if (_group == g.id) setState(() => _group = null);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Fresh preview of the tab the user just left.
+    final active = ref.read(tabsProvider).activeId;
+    ref.read(thumbnailsProvider.notifier).capture(active).ignore();
   }
 
   @override
@@ -97,7 +234,9 @@ class _TabSwitcherScreenState extends ConsumerState<TabSwitcherScreen> {
       body: Stack(
         children: [
           const Positioned.fill(child: PrismBackground()),
-          if (ordered.isEmpty)
+          // Only an empty incognito list replaces the grid; an empty group
+          // keeps the group chips (and "New tab" adds a tab to it).
+          if (ordered.isEmpty && _incognito)
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(PrismSpace.xxl),
@@ -145,13 +284,33 @@ class _TabSwitcherScreenState extends ConsumerState<TabSwitcherScreen> {
                                 ),
                                 for (final g in state.groups) ...[
                                   const SizedBox(width: PrismSpace.sm),
-                                  PrismChip(
-                                    label: g.name,
-                                    color: Color(g.color),
-                                    selected: _group == g.id,
-                                    onTap: () => setState(() => _group = g.id),
+                                  // Long-press: rename / delete the group.
+                                  // One node for screen readers: the chip's
+                                  // label with tap and long-press actions.
+                                  MergeSemantics(
+                                    child: GestureDetector(
+                                      onLongPress: () => _groupMenu(g),
+                                      child: PrismChip(
+                                        label: g.name,
+                                        color: Color(g.color),
+                                        selected: _group == g.id,
+                                        onTap: () =>
+                                            setState(() => _group = g.id),
+                                      ),
+                                    ),
                                   ),
                                 ],
+                                const SizedBox(width: PrismSpace.sm),
+                                PrismChip(
+                                  label: l.tabsNewGroup,
+                                  icon: PrismIcons.add,
+                                  onTap: () async {
+                                    final id = await _createGroup();
+                                    if (id != null && mounted) {
+                                      setState(() => _group = id);
+                                    }
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -253,9 +412,10 @@ class _TabSwitcherScreenState extends ConsumerState<TabSwitcherScreen> {
                   label: l.actionNewTab,
                   icon: _incognito ? PrismIcons.incognito : PrismIcons.add,
                   onPressed: () {
+                    // Inside a group filter, the new tab joins that group.
                     ref
                         .read(tabsProvider.notifier)
-                        .newTab(incognito: _incognito);
+                        .newTab(incognito: _incognito, groupId: _group);
                     context.canPop() ? context.pop() : context.go('/');
                   },
                 ),
@@ -269,7 +429,25 @@ class _TabSwitcherScreenState extends ConsumerState<TabSwitcherScreen> {
   }
 }
 
-class _Card extends StatelessWidget {
+class _GroupDot extends StatelessWidget {
+  const _GroupDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 40,
+    child: Center(
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+    ),
+  );
+}
+
+class _Card extends ConsumerWidget {
   const _Card({
     required this.tab,
     required this.selected,
@@ -283,17 +461,31 @@ class _Card extends StatelessWidget {
   final VoidCallback onClose;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final t = PrismTokens.of(context);
     final title = tab.isStartPage
         ? l.actionNewTab
         : (tab.title.isEmpty ? tab.host : tab.title);
+    final shot = ref.watch(thumbnailsProvider.select((m) => m[tab.id]));
     Widget thumb = tab.isStartPage
         ? Center(
             child: Icon(PrismIcons.globe, size: 32, color: t.onSurfaceMuted),
           )
-        : SiteThumbnail(tab: tab);
+        : shot != null
+        ? Image.memory(
+            shot,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            gaplessPlayback: true,
+            // The card's title says what the page is.
+            excludeFromSemantics: true,
+          )
+        : ref.watch(demoDataProvider)
+        ? SiteThumbnail(tab: tab)
+        : Center(
+            child: LetterFavicon(label: tab.title, host: tab.host, size: 40),
+          );
     if (!tab.loaded) {
       thumb = Stack(
         fit: StackFit.expand,

@@ -1,6 +1,10 @@
 ﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../browser/download_names.dart';
+
+export '../browser/download_names.dart' show DownloadRequest;
+
 /// Web engine abstraction. The UI never talks to a WebView plugin directly:
 /// it uses [BrowserEngine] / [TabSession]. Implementations: `AndroidEngine`
 /// (Android System WebView), `WindowsEngine` (WebView2), `FakeEngine`
@@ -29,6 +33,15 @@ abstract interface class BrowserEngine {
   /// False after [warmUp] when the platform engine is missing (e.g. no
   /// WebView2 Runtime on Windows). The UI then explains how to fix it.
   bool get isAvailable;
+
+  /// Files pages asked to download. The engine never saves them itself:
+  /// Prism downloads them (one list, pause/resume on every platform).
+  Stream<DownloadRequest> get downloadRequests;
+
+  /// `Cookie` header for downloading [url] as the page would, or null.
+  /// Always null for incognito (a private download must not carry the
+  /// regular profile's cookies).
+  Future<String?> cookieHeader(Uri url, {required bool incognito});
 }
 
 @immutable

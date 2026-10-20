@@ -73,3 +73,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // FileProvider for opening downloads (already pulled in by the WebView
+    // plugin at runtime; declared for compiling MainActivity).
+    implementation("androidx.core:core:1.13.1")
+}

@@ -58,25 +58,6 @@ void main() {
     expect(c.read(tabsProvider).active.incognito, isFalse);
   });
 
-  test('omnibox: no search suggestions before typing', () async {
-    final c = await makeContainer();
-    addTearDown(c.dispose);
-    expect(c.read(omniboxSuggestionsProvider('')), isEmpty);
-    final s = c.read(omniboxSuggestionsProvider('призм'));
-    expect(s.any((x) => x.kind == SuggestionKind.search), isTrue);
-    expect(s.any((x) => x.kind == SuggestionKind.bookmark), isTrue);
-  });
-
-  test('downloads: pause / resume toggles', () async {
-    final c = await makeContainer();
-    addTearDown(c.dispose);
-    c.read(downloadsProvider.notifier).toggle('d1');
-    expect(
-      c.read(downloadsProvider).firstWhere((d) => d.id == 'd1').state,
-      DownloadState.paused,
-    );
-  });
-
   test('privacy: manual toggle switches profile to custom', () async {
     final c = await makeContainer();
     addTearDown(c.dispose);

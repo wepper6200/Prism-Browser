@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the app's own Downloads folder is shareable (opening a finished
+     download on Android 9 and older). -->
+<paths>
+    <external-files-path name="downloads" path="Download/" />
+    <files-path name="documents" path="." />
+</paths>

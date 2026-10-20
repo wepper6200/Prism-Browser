@@ -1,4 +1,6 @@
-﻿import 'package:flutter/foundation.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../domain/engine/browser_engine.dart';
@@ -40,6 +42,18 @@ class FakeEngine implements BrowserEngine {
 
   @override
   bool get isAvailable => true;
+
+  final _downloads = StreamController<DownloadRequest>.broadcast();
+
+  @override
+  Stream<DownloadRequest> get downloadRequests => _downloads.stream;
+
+  /// Tests: a page asks to download a file.
+  void simulateDownload(DownloadRequest request) => _downloads.add(request);
+
+  @override
+  Future<String?> cookieHeader(Uri url, {required bool incognito}) async =>
+      null;
 
   @override
   TabSession createSession({

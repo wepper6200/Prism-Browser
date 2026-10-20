@@ -869,4 +869,95 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mockNotice => 'Предпросмотр: веб-движок подключается на этапе 3';
+
+  @override
+  String get actionMore => 'Ещё';
+
+  @override
+  String get actionRename => 'Переименовать';
+
+  @override
+  String get bookmarksDeleteFolder => 'Удалить папку';
+
+  @override
+  String get bookmarksDeleteFolderSub =>
+      'Закладки из неё перейдут в «Без папки»';
+
+  @override
+  String get bookmarksEdit => 'Изменить закладку';
+
+  @override
+  String get bookmarksFieldFolder => 'Папка';
+
+  @override
+  String get bookmarksFieldTitle => 'Название';
+
+  @override
+  String get bookmarksFolderEmpty => 'В папке пока пусто';
+
+  @override
+  String get bookmarksFolderName => 'Название папки';
+
+  @override
+  String get bookmarksNewFolder => 'Новая папка';
+
+  @override
+  String get downloadCancel => 'Отменить загрузку';
+
+  @override
+  String get downloadOpenFailed => 'Не удалось открыть файл';
+
+  @override
+  String get downloadRemoveFromList => 'Убрать из списка (файл останется)';
+
+  @override
+  String downloadStarted(Object name) {
+    return 'Загружается: $name';
+  }
+
+  @override
+  String get emptySearchBody => 'Попробуйте другой запрос.';
+
+  @override
+  String get emptySearchTitle => 'Ничего не найдено';
+
+  @override
+  String get historyRemoveEntry => 'Удалить из истории';
+
+  @override
+  String get tabsDeleteGroup => 'Удалить группу';
+
+  @override
+  String get tabsDeleteGroupSub => 'Вкладки останутся открытыми, без группы';
+
+  @override
+  String get tabsGroup => 'Группа';
+
+  @override
+  String get tabsGroupName => 'Название группы';
+
+  @override
+  String get tabsNewGroup => 'Новая группа';
+
+  @override
+  String get tabsNoGroup => 'Без группы';
+
+  @override
+  String get menuBookmarked => 'В закладках';
+
+  @override
+  String get menuBookmarkedSub => 'Нажмите, чтобы удалить';
+
+  @override
+  String get bookmarkAdded => 'Добавлено в закладки';
+
+  @override
+  String get bookmarkRemoved => 'Удалено из закладок';
+
+  @override
+  String get incognitoMark => 'Режим инкогнито';
+
+  @override
+  String get incognitoCookiesShared =>
+      'На Android веб-движок (WebView) хранит куки общими для всех вкладок приложения. Prism не сохраняет в инкогнито историю, вкладки, кэш и список загрузок, но сайты могут видеть куки, которые вы получили в обычных вкладках.';
 }

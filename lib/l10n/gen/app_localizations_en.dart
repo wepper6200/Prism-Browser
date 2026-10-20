@@ -858,4 +858,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mockNotice => 'Preview: the web engine connects in stage 3';
+
+  @override
+  String get actionMore => 'More';
+
+  @override
+  String get actionRename => 'Rename';
+
+  @override
+  String get bookmarksDeleteFolder => 'Delete folder';
+
+  @override
+  String get bookmarksDeleteFolderSub => 'Its bookmarks move to Unsorted';
+
+  @override
+  String get bookmarksEdit => 'Edit bookmark';
+
+  @override
+  String get bookmarksFieldFolder => 'Folder';
+
+  @override
+  String get bookmarksFieldTitle => 'Name';
+
+  @override
+  String get bookmarksFolderEmpty => 'This folder is empty';
+
+  @override
+  String get bookmarksFolderName => 'Folder name';
+
+  @override
+  String get bookmarksNewFolder => 'New folder';
+
+  @override
+  String get downloadCancel => 'Cancel download';
+
+  @override
+  String get downloadOpenFailed => 'Could not open the file';
+
+  @override
+  String get downloadRemoveFromList => 'Remove from list (the file stays)';
+
+  @override
+  String downloadStarted(Object name) {
+    return 'Downloading: $name';
+  }
+
+  @override
+  String get emptySearchBody => 'Try a different search.';
+
+  @override
+  String get emptySearchTitle => 'Nothing found';
+
+  @override
+  String get historyRemoveEntry => 'Remove from history';
+
+  @override
+  String get tabsDeleteGroup => 'Delete group';
+
+  @override
+  String get tabsDeleteGroupSub => 'Its tabs stay open, ungrouped';
+
+  @override
+  String get tabsGroup => 'Group';
+
+  @override
+  String get tabsGroupName => 'Group name';
+
+  @override
+  String get tabsNewGroup => 'New group';
+
+  @override
+  String get tabsNoGroup => 'No group';
+
+  @override
+  String get menuBookmarked => 'Bookmarked';
+
+  @override
+  String get menuBookmarkedSub => 'Tap to remove';
+
+  @override
+  String get bookmarkAdded => 'Added to bookmarks';
+
+  @override
+  String get bookmarkRemoved => 'Removed from bookmarks';
+
+  @override
+  String get incognitoMark => 'Incognito';
+
+  @override
+  String get incognitoCookiesShared =>
+      'On Android the web engine (WebView) shares cookies between all tabs of an app. In incognito Prism keeps no history, tabs, cache or downloads list, but sites can see cookies you got in regular tabs.';
 }

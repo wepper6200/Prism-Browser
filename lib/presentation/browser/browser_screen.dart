@@ -13,6 +13,7 @@ import '../../core/design/components/prism_toolbar.dart';
 import '../../core/design/effects_policy.dart';
 import '../../core/design/prism_icons.dart';
 import '../../core/design/tokens.dart';
+import '../../domain/browser/models.dart';
 import '../../domain/engine/url_resolver.dart';
 import '../../domain/settings/appearance.dart';
 import '../../l10n/gen/app_localizations.dart';
@@ -46,12 +47,14 @@ class BrowserScreen extends ConsumerStatefulWidget {
   ConsumerState<BrowserScreen> createState() => _BrowserScreenState();
 }
 
-class _BrowserScreenState extends ConsumerState<BrowserScreen> {
+class _BrowserScreenState extends ConsumerState<BrowserScreen>
+    with WidgetsBindingObserver {
   BrowserPanel _panel = BrowserPanel.none;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final p = widget.initialPanel;
     if (p == BrowserPanel.omnibox || p == BrowserPanel.find) {
       _panel = p;
@@ -60,6 +63,55 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
         if (mounted) p == BrowserPanel.menu ? _openMenu() : _openPrivacy();
       });
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// The OS is low on memory: keep only the visible tab's engine view.
+  @override
+  void didHaveMemoryPressure() =>
+      ref.read(tabsProvider.notifier).unloadInactive();
+
+  /// Going to the background (Android may kill the app there): refresh the
+  /// active tab's preview and make sure the session is on disk.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      final tabs = ref.read(tabsProvider);
+      ref.read(thumbnailsProvider.notifier).capture(tabs.activeId).ignore();
+      ref.read(tabsProvider.notifier).flush().ignore();
+    }
+  }
+
+  void _toast(String message, {SnackBarAction? action}) =>
+      ScaffoldMessenger.maybeOf(context)
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message), action: action));
+
+  /// Star / Ctrl+D / menu: bookmark the page or remove the bookmark.
+  Future<void> _toggleBookmark() async {
+    final l = AppLocalizations.of(context);
+    final page = ref.read(pageStateProvider);
+    final url = page.url;
+    if (url == null) return;
+    final added = await ref
+        .read(bookmarkActionsProvider)
+        .toggle(url.toString(), page.session.title);
+    if (!mounted) return;
+    _toast(
+      added ? l.bookmarkAdded : l.bookmarkRemoved,
+      action: added
+          ? SnackBarAction(
+              label: l.bookmarksEdit,
+              onPressed: () => context.push('/bookmarks'),
+            )
+          : null,
+    );
   }
 
   void _setPanel(BrowserPanel p) => setState(() => _panel = p);
@@ -93,9 +145,10 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
         context.push('/settings').ignore();
       case MenuAction.find:
         _setPanel(BrowserPanel.find);
+      case MenuAction.bookmark:
+        _toggleBookmark().ignore();
       case MenuAction.share:
       case MenuAction.pdf:
-      case MenuAction.bookmark:
       case MenuAction.forgetAll:
         // Wired to the engine / storage in stages 3-5.
         break;
@@ -128,6 +181,12 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
       const SingleActivator(LogicalKeyboardKey.keyJ, control: true): () =>
           context.push('/downloads'),
       const SingleActivator(LogicalKeyboardKey.keyD, control: true): () =>
+          _toggleBookmark().ignore(),
+      const SingleActivator(
+        LogicalKeyboardKey.keyO,
+        control: true,
+        shift: true,
+      ): () =>
           context.push('/bookmarks'),
       const SingleActivator(LogicalKeyboardKey.tab, control: true): () {
         final s = ref.read(tabsProvider);
@@ -142,6 +201,26 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   @override
   Widget build(BuildContext context) {
     final page = ref.watch(pageStateProvider);
+    // Keeps the download manager listening to the engine, and tells the
+    // user a page started a download.
+    ref.listen(downloadsProvider, (prev, next) {
+      final known = {for (final d in prev ?? const <DownloadItem>[]) d.id};
+      // New and running: entries restored from the database are not new.
+      final started = next
+          .where(
+            (d) => !known.contains(d.id) && d.state == DownloadState.running,
+          )
+          .toList();
+      if (prev == null || started.isEmpty) return;
+      final l = AppLocalizations.of(context);
+      _toast(
+        l.downloadStarted(started.first.fileName),
+        action: SnackBarAction(
+          label: l.menuDownloads,
+          onPressed: () => context.push('/downloads'),
+        ),
+      );
+    });
     final wide =
         MediaQuery.sizeOf(context).width >= BrowserScreen.wideBreakpoint;
     final barBottom =
@@ -213,6 +292,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                           onOmnibox: () => _setPanel(BrowserPanel.omnibox),
                           onMenu: _openMenu,
                           onPrivacy: _openPrivacy,
+                          onBookmark: () => _toggleBookmark().ignore(),
                         ),
                       )
                     else ...[
@@ -305,6 +385,7 @@ class _AddressBar extends ConsumerWidget {
     final toolbar = PrismToolbar(
       position: position,
       safeArea: safeArea,
+      leading: [if (page.tab.incognito) const IncognitoMark()],
       middle: PrismAddressField(
         text: UrlResolver.display(page.url, full: false),
         hint: l.omniboxHint,
