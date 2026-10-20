@@ -4,7 +4,10 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    # Docs-only changes don't need a 15-minute build.
+    paths-ignore: ['docs/**', '**.md']
   pull_request:
+    paths-ignore: ['docs/**', '**.md']
   workflow_dispatch:
     # Manual runs can build one platform:
     #   gh workflow run build -f platforms=windows
